@@ -489,6 +489,22 @@ const deleteUser = async (req, res) => {
   res.status(200).json({ message: `${role} deleted successfully` });
 };
 
+const getPendingUsersByRole = async (req, res) => {
+  const { role } = req.query;
+
+  const Model = role === "buyer" ? Buyer : role === "seller" ? Seller : null;
+  if (!Model) {
+    return res.status(400).json({ message: "Invalid role provided" });
+  }
+
+  try {
+    const pendingUsers = await Model.find({ status: "pending" });
+    res.status(200).json(pendingUsers);
+  } catch (error) {
+    console.error("Error fetching pending users:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 
@@ -504,5 +520,6 @@ module.exports = {
   deleteUser,
   addSellerByAdmin,
   addBuyerByAdmin, 
-  getUserCounts
+  getUserCounts, 
+  getPendingUsersByRole
 };

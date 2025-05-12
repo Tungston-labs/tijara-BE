@@ -7,6 +7,9 @@ const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../control
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 
 
+router.post("/refresh",refresh);
+
+
 router.post("/seller-register", upload.single("tradeLicenseCopy"), registerSeller);
 router.post("/seller-login", loginSeller);
 router.post("/refresh-seller", refresh)

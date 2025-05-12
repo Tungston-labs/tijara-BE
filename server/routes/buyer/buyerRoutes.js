@@ -5,6 +5,8 @@ const router= express.Router();
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 
+router.post("/refresh",refresh);
+
 
 router.post("/buyer-sign-up",registerBuyer);
 router.post("/buyer-login",loginBuyer);
