@@ -36,6 +36,10 @@ const sellerSchema = new mongoose.Schema(
       type: String, // This will store the file path or URL
       required: [true, "Trade license copy is required"],
     },
+        profileImage: {
+      type: String, 
+      default: "",  
+        },
     role: {
         type: String,
         default: 'seller',

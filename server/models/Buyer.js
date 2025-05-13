@@ -20,12 +20,16 @@ const buyerSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 8, 
+      minlength: 8,
     },
     role: {
       type: String,
       default: "buyer",
       enum: ["buyer"],
+    },
+    profileImage: {
+      required: true,
+      type: String,
     },
     status: {
       type: String,

@@ -10,7 +10,7 @@ const jwtAuthentication = require("../../middleware/jwtAuthentication");
 router.post("/refresh",refresh);
 
 
-router.post("/seller-register", upload.single("tradeLicenseCopy"), registerSeller);
+router.post("/seller-register", upload.single("tradeLicenseCopy"), upload.single("profileImage") ,registerSeller);
 router.post("/seller-login", loginSeller);
 router.post("/refresh-seller", refresh)
 router.post("/seller-send-otp", sendOtpForPasswordReset);

@@ -118,12 +118,18 @@ const Login = async (req, res, next) => {
       sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
     });
 
-    return res.status(200).json({
-      message: "Login successful",
-      username: admin.username,
-      accessToken,
-      role: admin.role,
-    });
+return res.status(200).json({
+  message: "Login successful",
+  accessToken,
+  user: {
+    userName: admin.username,
+    role: admin.role,
+    email: admin.email,
+    id: admin._id,
+  }
+});
+
+
   } catch (error) {
     next(error);
   }
@@ -490,21 +496,42 @@ const deleteUser = async (req, res) => {
 };
 
 const getPendingUsersByRole = async (req, res) => {
-  const { role } = req.query;
+  const { role, search = "", page = 1, limit = 2 } = req.query;
 
   const Model = role === "buyer" ? Buyer : role === "seller" ? Seller : null;
   if (!Model) {
     return res.status(400).json({ message: "Invalid role provided" });
   }
 
+  const searchRegex = new RegExp(search, "i"); // case-insensitive search
+
   try {
-    const pendingUsers = await Model.find({ status: "pending" });
-    res.status(200).json(pendingUsers);
+    const query = {
+      status: "pending",
+      $or: [
+        { name: searchRegex }, // assuming the model has a 'name' field
+        { email: searchRegex }, // and an 'email' field
+        // add more fields here if needed
+      ],
+    };
+
+    const total = await Model.countDocuments(query);
+    const users = await Model.find(query)
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    res.status(200).json({
+      data: users,
+      currentPage: Number(page),
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+    });
   } catch (error) {
     console.error("Error fetching pending users:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
