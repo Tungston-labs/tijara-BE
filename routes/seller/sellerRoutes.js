@@ -10,12 +10,20 @@ const jwtAuthentication = require("../../middleware/jwtAuthentication");
 router.post("/refresh",refresh);
 
 
-router.post("/seller-register", upload.single("tradeLicenseCopy"), upload.single("profileImage") ,registerSeller);
+router.post("/seller-register",  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "tradeLicenseCopy", maxCount: 1 },
+  ]),
+  registerSeller
+);
 router.post("/seller-login", loginSeller);
 router.post("/refresh-seller", refresh)
 router.post("/seller-send-otp", sendOtpForPasswordReset);
 router.post("/seller-verify-otp", verifyOtpForPasswordReset);
 router.post("/seller-reset-password", resetPassword);
-router.put("/edit/:id", jwtAuthentication, editSeller);
+router.put("/edit/:id", jwtAuthentication, upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "tradeLicenseCopy", maxCount: 1 },
+  ]), editSeller);
 
 module.exports=router;

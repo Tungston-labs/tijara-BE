@@ -42,21 +42,17 @@ const productSchema = new mongoose.Schema(
       type: [String], // Paths or URLs
       validate: [arrayLimit, "Minimum 1 image required"], // Ensure validation works
     },
-    addedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      refPath: "addedByModel",
-      required: true,
-    },
-    addedByModel: {
-      type: String,
-      enum: ["Admin", "Seller"],
-      required: true,
-    },
-    seller: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Seller",
-     
-    },
+ addedBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  refPath: "addedByModel",
+  required: true,
+},
+addedByModel: {
+  type: String,
+  enum: ["Admin", "User"], 
+  required: true,
+},
+
     
     
 

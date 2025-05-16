@@ -2,16 +2,14 @@ const Admin = require("../../models/Admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
-const Buyer = require("../../models/Buyer");
-const Seller = require("../../models/Seller");
+const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
-
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
 
-// For admin signup
+//Sign Up
 
 const signUp = async (req, res, next) => {
   try {
@@ -118,86 +116,46 @@ const Login = async (req, res, next) => {
       sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
     });
 
-return res.status(200).json({
-  message: "Login successful",
-  accessToken,
-  user: {
-    userName: admin.username,
-    role: admin.role,
-    email: admin.email,
-    id: admin._id,
-  }
-});
-
-
+    return res.status(200).json({
+      message: "Login successful",
+      accessToken,
+      user: {
+        userName: admin.username,
+        role: admin.role,
+        email: admin.email,
+        id: admin._id,
+      },
+    });
   } catch (error) {
     next(error);
   }
 };
 
+//Get user counts
 
-const getUserCounts = async (req, res) => {
+const getUserCounts = async (req, res, next) => {
   try {
-    const [
-      totalBuyers,
-      pendingBuyers,
-      totalSellers,
-      pendingSellers
-    ] = await Promise.all([
-      Buyer.countDocuments(),
-      Buyer.countDocuments({ status: "pending" }),
-      Seller.countDocuments(),
-      Seller.countDocuments({ status: "pending" })
-    ]);
+    const [totalBuyers, pendingBuyers, totalSellers, pendingSellers] =
+      await Promise.all([
+        User.countDocuments({ role: "buyer" }),
+        User.countDocuments({ role: "buyer", status: "pending" }),
+        User.countDocuments({ role: "seller" }),
+        User.countDocuments({ role: "seller", status: "pending" }),
+      ]);
 
     return res.status(200).json({
       totalBuyers,
       pendingBuyers,
       totalSellers,
       pendingSellers,
-      pendingApprovals: pendingBuyers + pendingSellers
+      pendingApprovals: pendingBuyers + pendingSellers,
     });
   } catch (error) {
-    console.error("Error getting user counts:", error);
-    return res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
-// const refresh=async(req,res)=>{
-//   try {
-//       const cookies = req.cookies;
-//       if (!cookies || !cookies.jwt) {
-//         return res
-//           .status(401)
-//           .json({ message: "Please login first , unauthorized" });
-//       }
-//       const refreshToken = cookies.jwt;
-//       jwt.verify(
-//         refreshToken,
-//         process.env.REFRESH_TOKEN_SECRET,
-//         async (err, decoded) => {
-//           if (err) {
-//             return res.status(403).json({ message: "Invalid token" });
-//           }
-//           const { id } = decoded;
-//           const foundUser = await Admin.findById(id);
 
-//           if (!foundUser) {
-//             return res.status(404).json({ message: "Admin not found" });
-//           }
-//           const accessToken = jwt.sign(
-//               { id: foundUser._id, email: foundUser.email },
-//               process.env.ACCESS_TOKEN_SECRET,
-//               { expiresIn: "1h" }
-//             );
-//            return res.status(200).json({ message: "refresh token successfull", accessToken });
-//         }
-//       );
-//   } catch (error) {
-//       console.log(error);
-//       return res.status(500).json({ message: "server error" });
-//   }
-// }
 
 //For restting the Password
 
@@ -274,109 +232,152 @@ const resetPassword = async (req, res, next) => {
 
     res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
-    next(error); // Pass to centralized error handler
+    next(error); 
   }
 };
 
-const addBuyerByAdmin = async (req, res) => {
-  try {
-    const { buyerName, phone, email, password } = req.body;
+//Register buyer by admin
 
-    // Check if the email already exists
-    const existingBuyer = await Buyer.findOne({ email });
-    if (existingBuyer) {
-      return res.status(400).json({ message: "Buyer already exists with this email" });
+const addBuyerByAdmin = async (req, res, next) => {
+  try {
+    const { name, phone, email, password } = req.body;
+
+    console.log("File received:", req.file);
+    console.log("Request body:", req.body);
+
+    // Extract profileImage path from req.file
+    const profileImage = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/profile/${
+          req.file.filename
+        }`
+      : null;
+
+    if (!name || !phone || !email || !password || !profileImage) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Hash the password
+    const existingBuyer = await User.findOne({ email });
+    if (existingBuyer) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save the new buyer
-    const newBuyer = new Buyer({
-      buyerName,
+    const newBuyer = new User({
+      name,
       phone,
       email,
       password: hashedPassword,
+      profileImage,
+      role: "buyer",
     });
 
     await newBuyer.save();
 
-    res.status(201).json({ message: "Buyer added successfully", buyer: newBuyer });
+    // Exclude the password in the response
+    const { password: _, ...buyerData } = newBuyer.toObject();
+    res.status(201).json({
+      message: "Buyer registered successfully",
+      buyer: buyerData,
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// Register Seller
+// Register Seller by admin
+
 const addSellerByAdmin = async (req, res, next) => {
   try {
-    console.log("ddddd",req.body)
-      const {
-        sellerName,
-        email,
-        password,
-        phone,
-        companyName,
-        tradeLicenseNumber,
-        managerName,
-      } = req.body;
-  console.log("ddddsfeggdgh",req.file)
-      if (
-        !sellerName ||
-        !email ||
-        !password ||
-        !phone ||
-        !companyName ||
-        !tradeLicenseNumber ||
-        !managerName ||
-        !req.file
-      ) {
-        return res.status(400).json({ message: "All fields including trade license copy are required" });
-      }
-  
-      // Validations
-     
-  
-      if (!validator.isEmail(email)) {
-        return res.status(400).json({ message: "Invalid email address" });
-      }
-  
-      if (!validator.isMobilePhone(phone)) {
-        return res.status(400).json({ message: "Invalid phone number" });
-      }
-  
-      if (!passwordRegex.test(password)) {
-        return res.status(400).json({
-          message:
-            "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
-        });
-      }
-  
-      const existingSeller = await Seller.findOne({ email });
-      if (existingSeller) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-  
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      const newSeller = new Seller({
-        sellerName,
-        email,
-        password: hashedPassword,
-        phone,
-        companyName,
-        tradeLicenseNumber,
-        managerName,
-        tradeLicenseCopy: req.file.path, // Store file path
+    const cleanBody = { ...req.body };
+
+    const {
+      name,
+      email,
+      password,
+      phone,
+      companyName,
+      tradeLicenseNumber,
+      managerName,
+    } = cleanBody;
+
+    // Check required fields
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !phone ||
+      !companyName ||
+      !tradeLicenseNumber ||
+      !managerName ||
+      !req.files ||
+      !req.files.tradeLicenseCopy ||
+      !req.files.profileImage
+    ) {
+      return res.status(400).json({
+        message:
+          "All fields including trade license copy and profile image are required",
       });
-  
-      await newSeller.save();
-  
-      res.status(201).json({ message: "Seller registered successfully" });
-    } catch (error) {
-      next(error);
     }
+
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/profile/${req.files.profileImage[0].filename}`;
+
+    // Input validations
+    if (!usernameRegex.test(name)) {
+      return res.status(400).json({ message: "Invalid name format" });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "Invalid email address" });
+    }
+
+    if (!validator.isMobilePhone(phone)) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+      });
+    }
+
+
+    const existingSeller = await User.findOne({ email });
+    if (existingSeller) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newSeller = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      companyName,
+      tradeLicenseNumber,
+      managerName,
+      tradeLicenseCopy: tradeLicensePath,
+      profileImage: profileImagePath,
+      role: "seller",
+    });
+
+    await newSeller.save();
+    const { password: _, ...sellerData } = newSeller.toObject();
+    res
+      .status(201)
+      .json({ message: "Seller registered successfully", seller: sellerData });
+  } catch (error) {
+    console.error("Registration error:", error);
+    next(error);
+  }
 };
+
+// Update the user to login
 
 const updateUserStatus = async (req, res) => {
   const { userId, role, status } = req.body;
@@ -387,7 +388,7 @@ const updateUserStatus = async (req, res) => {
       .json({ message: "Status must be 'approved' or 'rejected'" });
   }
 
-  const Model = role === "buyer" ? Buyer : role === "seller" ? Seller : null;
+  const Model = role === "buyer" ? User : role === "seller" ? User : null;
   if (!Model) {
     return res.status(400).json({ message: "Invalid role provided" });
   }
@@ -403,26 +404,24 @@ const updateUserStatus = async (req, res) => {
   res.status(200).json({ message: `${role} status updated to ${status}` });
 };
 
+// Get all users by role
+
 const getAllUsers = async (req, res, next) => {
   try {
     const { role, search = "", page = 1, limit = 10, status } = req.query;
 
+    // Ensure valid role
     if (!["seller", "buyer"].includes(role)) {
       return res
         .status(400)
         .json({ message: "Role must be 'seller' or 'buyer'" });
     }
 
-    const UserModel = userModels[role];
-    if (!UserModel) {
-      return res.status(404).json({ message: "User model not found" });
-    }
-
-    const nameField = role === "seller" ? "sellerName" : "buyerName";
-
+    // Build base query
     const query = {
+      role, // Match specific role
       $or: [
-        { [nameField]: { $regex: search, $options: "i" } },
+        { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
       ],
     };
@@ -433,8 +432,8 @@ const getAllUsers = async (req, res, next) => {
 
     const skip = Math.max((parseInt(page) - 1) * parseInt(limit), 0);
 
-    const total = await UserModel.countDocuments(query);
-    const users = await UserModel.find(query)
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -450,22 +449,20 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
+//Get single user
+
 const getUserById = async (req, res, next) => {
   try {
     const { role, id } = req.params;
 
+   
     if (!["seller", "buyer"].includes(role)) {
       return res
         .status(400)
         .json({ message: "Role must be 'seller' or 'buyer'" });
     }
 
-    const UserModel = userModels[role];
-    if (!UserModel) {
-      return res.status(404).json({ message: "User model not found" });
-    }
-
-    const user = await UserModel.findById(id);
+    const user = await User.findOne({ _id: id, role });
     if (!user) {
       return res
         .status(404)
@@ -478,6 +475,7 @@ const getUserById = async (req, res, next) => {
   }
 };
 
+//Delete a user
 
 const deleteUser = async (req, res) => {
   const { role, id } = req.params;
@@ -486,39 +484,38 @@ const deleteUser = async (req, res) => {
     return res.status(403).json({ message: "Unauthorized: Admin only" });
   }
 
-  const Model = userModels[role];
-  if (!Model) return res.status(400).json({ message: "Invalid role" });
+  if (!["seller", "buyer"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
 
-  const deleted = await Model.findByIdAndDelete(id);
-  if (!deleted) return res.status(404).json({ message: `${role} not found` });
+  const deleted = await User.findOneAndDelete({ _id: id, role });
+  if (!deleted) {
+    return res.status(404).json({ message: `${role} not found` });
+  }
 
   res.status(200).json({ message: `${role} deleted successfully` });
 };
-
 const getPendingUsersByRole = async (req, res) => {
   const { role, search = "", page = 1, limit = 2 } = req.query;
 
-  const Model = role === "buyer" ? Buyer : role === "seller" ? Seller : null;
-  if (!Model) {
+  if (!["buyer", "seller"].includes(role)) {
     return res.status(400).json({ message: "Invalid role provided" });
   }
 
-  const searchRegex = new RegExp(search, "i"); // case-insensitive search
+  const searchRegex = new RegExp(search, "i"); 
 
   try {
     const query = {
-      status: "pending",
-      $or: [
-        { name: searchRegex }, // assuming the model has a 'name' field
-        { email: searchRegex }, // and an 'email' field
-        // add more fields here if needed
-      ],
+      role, 
+      status: "pending", 
+      $or: [{ name: searchRegex }, { email: searchRegex }],
     };
 
-    const total = await Model.countDocuments(query);
-    const users = await Model.find(query)
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       data: users,
@@ -532,10 +529,6 @@ const getPendingUsersByRole = async (req, res) => {
   }
 };
 
-
-
-
-
 module.exports = {
   signUp,
   Login,
@@ -546,7 +539,7 @@ module.exports = {
   getUserById,
   deleteUser,
   addSellerByAdmin,
-  addBuyerByAdmin, 
-  getUserCounts, 
-  getPendingUsersByRole
+  addBuyerByAdmin,
+  getUserCounts,
+  getPendingUsersByRole,
 };

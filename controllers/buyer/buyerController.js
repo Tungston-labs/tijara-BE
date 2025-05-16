@@ -1,4 +1,4 @@
-const Buyer = require("../../models/Buyer");
+const User = require("../../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
@@ -6,30 +6,31 @@ const validator = require("validator");
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
-
 const registerBuyer = async (req, res, next) => {
   try {
-    const { buyerName, phone, email, password } = req.body;
+    const { name, phone, email, password } = req.body;
+
     console.log("File received:", req.file);
     console.log("Request body:", req.body);
-    if (!buyerName || !phone || !email || !password) {
+
+    // Extract profileImage path from req.file
+    const profileImage = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/profile/${req.file.filename}`
+      : null;
+
+    if (!name || !phone || !email || !password || !profileImage) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const existingBuyer = await Buyer.findOne({ email });
+    const existingBuyer = await User.findOne({ email });
     if (existingBuyer) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // const baseUrl = `${req.protocol}://${req.get("host")}`;
-    // const profileImage = req.file
-    //   ? `${baseUrl}/uploads/profile/${req.file.filename}`
-    //   : null;
-
-    const newBuyer = new Buyer({
-      buyerName,
+    const newBuyer = new User({
+      name,
       phone,
       email,
       password: hashedPassword,
@@ -37,13 +38,19 @@ const registerBuyer = async (req, res, next) => {
       role: "buyer",
     });
 
-    await newBuyer.save();
+await newBuyer.save();
 
-    res.status(201).json({ message: "Buyer registered successfully" });
+// Exclude the password in the response
+const { password: _, ...buyerData } = newBuyer.toObject();
+res.status(201).json({
+  message: "Buyer registered successfully",
+  buyer: buyerData,
+});
   } catch (error) {
     next(error);
   }
 };
+
 
 const loginBuyer = async (req, res, next) => {
   try {
@@ -54,7 +61,7 @@ const loginBuyer = async (req, res, next) => {
       throw new Error("Please provide both email and password");
     }
 
-    const buyer = await Buyer.findOne({ email });
+    const buyer = await User.findOne({ email });
     if (!buyer) {
       res.status(401);
       throw new Error("Invalid email or password");
@@ -90,7 +97,7 @@ const loginBuyer = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful",
-      buyerName: buyer.buyerName,
+      name: buyer.name,
       accessToken,
       buyer: buyer.role,
     });
@@ -118,7 +125,7 @@ const checkResetToken = async (req, res, next) => {
       throw err;
     }
 
-    const admin = await Buyer.findOne({ email: decoded.email });
+    const admin = await User.findOne({ email: decoded.email, role });
     if (!admin) {
       const error = new Error("Buyer not found");
       error.statusCode = 404;
@@ -136,45 +143,42 @@ const resetPassword = async (req, res, next) => {
     const { newPassword } = req.body;
 
     if (!newPassword) {
-      const error = new Error("New password is required");
-      error.statusCode = 400;
-      throw error;
-    }
-    const resetToken = req.cookies?.resetToken;
-    if (!resetToken) {
-      const error = new Error("Unauthorized or token is required");
-      error.statusCode = 401;
-      throw error;
+      return res.status(400).json({ message: "New password is required" });
     }
 
-    // Password validation regex (adjust according to your requirements)
+    const resetToken = req.cookies?.resetToken;
+    if (!resetToken) {
+      return res.status(401).json({ message: "Unauthorized or token is required" });
+    }
+
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
     if (!passwordRegex.test(newPassword)) {
-      const error = new Error(
-        "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character, and be no more than 32 characters long"
-      );
-      error.statusCode = 400;
-      throw error;
+      return res.status(400).json({
+        message:
+          "Password must be 8-32 chars long, include uppercase, lowercase, number, and special character",
+      });
     }
 
     const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
-    const buyer = await Buyer.findOne({ email: decoded.email });
-    if (!buyer) {
-      const error = new Error("Buyer not found");
-      error.statusCode = 404;
-      throw error;
+    const { email, role } = decoded;
+
+    const user = await User.findOne({ email, role });
+    if (!user) {
+      return res.status(404).json({ message: `${role} not found` });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    buyer.password = hashedPassword;
-    await buyer.save();
+    user.password = hashedPassword;
+    await user.save();
 
     res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
-    next(error); // Pass to centralized error handler
+    next(error);
   }
 };
+
 
 const editBuyer = async (req, res, next) => {
   try {
@@ -184,10 +188,14 @@ const editBuyer = async (req, res, next) => {
     if (req.user.role !== "buyer") {
       return res.status(403).json({ message: "Unauthorized " });
     }
-
-    const updatedBuyer = await Buyer.findByIdAndUpdate(buyerId, updates, {
+  
+    const updatedBuyer = await User.findByIdAndUpdate(buyerId, updates, {
       new: true,
     });
+    if (req.file) {
+      updates.profileImage = `/uploads/buyers/${req.file.filename}`;
+    }
+
 
     if (!updatedBuyer) {
       return res.status(404).json({ message: "Buyer not found" });

@@ -1,23 +1,22 @@
-const Seller = require("../../models/Seller");
+const User = require("../../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
+const { seller } = require("../../utils/userModals");
 
 // Validation regex
 
-
-
 const usernameRegex = /^[a-zA-Z0-9 ]+$/; // Example regex, modify as needed
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
 
 const registerSeller = async (req, res, next) => {
+  // console.log("FILES RECEIVED:", req.files);
   try {
-    const cleanBody = Object.assign({}, req.body);
-
-    console.log("Received body:", req.body);
+    const cleanBody = { ...req.body };
 
     const {
-      sellerName,
+      name,
       email,
       password,
       phone,
@@ -26,9 +25,9 @@ const registerSeller = async (req, res, next) => {
       managerName,
     } = cleanBody;
 
-    // Ensure all required fields are provided, including the files
+    // Check required fields
     if (
-      !sellerName ||
+      !name ||
       !email ||
       !password ||
       !phone ||
@@ -36,23 +35,24 @@ const registerSeller = async (req, res, next) => {
       !tradeLicenseNumber ||
       !managerName ||
       !req.files ||
-      !req.files.tradeLicense || // Check for the trade license file
-      !req.files.profileImage // Check for the profile image file
+      !req.files.tradeLicenseCopy ||
+      !req.files.profileImage
     ) {
       return res.status(400).json({
-        message: "All fields including trade license copy and profile image are required",
+        message:
+          "All fields including trade license copy and profile image are required",
       });
     }
 
     // Base URL for image paths
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-    // Generate paths for both the trade license copy and profile image
-    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicense[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/profile/${req.files.profileImage[0].filename}`;
-
-    // Validate input
-    if (!usernameRegex.test(sellerName)) {
+    // Build image paths
+    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
+    
+    // Input validations
+    if (!usernameRegex.test(name)) {
       return res.status(400).json({ message: "Invalid name format" });
     }
 
@@ -71,18 +71,18 @@ const registerSeller = async (req, res, next) => {
       });
     }
 
-    // Check if email is already registered
-    const existingSeller = await Seller.findOne({ email });
+    // Check for duplicate email
+    const existingSeller = await User.findOne({ email });
     if (existingSeller) {
       return res.status(400).json({ message: "Email already registered" });
     }
-
-    // Hash the password
+   
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create the new seller
-    const newSeller = new Seller({
-      sellerName,
+    // Save new seller
+    const newSeller = new User({
+      name,
       email,
       password: hashedPassword,
       phone,
@@ -90,20 +90,20 @@ const registerSeller = async (req, res, next) => {
       tradeLicenseNumber,
       managerName,
       tradeLicenseCopy: tradeLicensePath,
-      profileImage: profileImagePath, // Save the profile image path
+      profileImage: profileImagePath,
+      role: "seller"
     });
 
-    // Save the seller to the database
     await newSeller.save();
+  const { password: _, ...sellerData } = newSeller.toObject();
 
-    res.status(201).json({ message: "Seller registered successfully" });
+    res.status(201).json({ message: "Seller registered successfully", seller:sellerData })
+   
   } catch (error) {
+    console.error("Registration error:", error);
     next(error);
   }
 };
-
-
-
 
 // Login Seller
 const loginSeller = async (req, res, next) => {
@@ -116,7 +116,7 @@ const loginSeller = async (req, res, next) => {
         .json({ message: "Email and password are required" });
     }
 
-    const seller = await Seller.findOne({ email });
+    const seller = await User.findOne({ email });
     if (!seller) {
       return res.status(404).json({ message: "Seller not found" });
     }
@@ -177,7 +177,7 @@ const checkResetToken = async (req, res, next) => {
       throw err;
     }
 
-    const seller = await Seller.findOne({ email: decoded.email });
+    const seller = await User.findOne({ email: decoded.email });
     if (!seller) {
       const error = new Error("Seller not found");
       error.statusCode = 404;
@@ -218,7 +218,7 @@ const resetPassword = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
-    const seller = await Seller.findOne({ email: decoded.email });
+    const seller = await User.findOne({ email: decoded.email });
     if (!seller) {
       const error = new Error("Seller not found");
       error.statusCode = 404;
@@ -237,24 +237,27 @@ const resetPassword = async (req, res, next) => {
 
 const editSeller = async (req, res, next) => {
   try {
-    const sellerId = req.user.id;
-    const updates = req.body;
+    const sellerId = req.params.id;
 
-    // Ensure user is either the seller themself or admin
-    if (req.user.role !== "seller") {
-      return res.status(403).json({ message: "Unauthorized" });
+    let updates = { ...req.body };
+
+    // Handle profile image upload
+    if (req.file) {
+      updates.profileImage = `/uploads/sellers/${req.file.filename}`;
     }
 
-    const updatedSeller = await Seller.findByIdAndUpdate(sellerId, updates, {
+    const updatedSeller = await User.findByIdAndUpdate(sellerId, updates, {
       new: true,
     });
+
     if (!updatedSeller) {
       return res.status(404).json({ message: "Seller not found" });
     }
 
-    res
-      .status(200)
-      .json({ message: "Seller updated successfully", seller: updatedSeller });
+    res.status(200).json({
+      message: "Seller updated successfully",
+      seller: updatedSeller,
+    });
   } catch (error) {
     next(error);
   }

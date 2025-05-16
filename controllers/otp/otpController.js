@@ -1,15 +1,13 @@
 const Admin = require("../../models/Admin");
-const Buyer = require("../../models/Buyer");
-const Seller = require("../../models/Seller");
+const User = require("../../models/User"); // Unified model for buyer & seller
 const Otp = require("../../models/Otp");
 const jwt = require("jsonwebtoken");
 const { generateUniqueOtp } = require("../../utils/otpHelper");
 
 const userModels = {
   admin: Admin,
-  buyer: Buyer,
-  seller: Seller,
-  
+  buyer: User, // Now points to shared User model
+  seller: User,
 };
 
 const sendOtpForPasswordReset = async (req, res, next) => {
@@ -21,7 +19,7 @@ const sendOtpForPasswordReset = async (req, res, next) => {
     }
 
     const UserModel = userModels[role];
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email, role }); // Match both email and role
     if (!user) {
       return res.status(404).json({ message: `${role} not found` });
     }
@@ -29,10 +27,8 @@ const sendOtpForPasswordReset = async (req, res, next) => {
     const otp = await generateUniqueOtp();
     await Otp.create({ otp, email, role });
 
-    // Send OTP via nodemailer (hook into your existing mail service)
-    // await sendMail(email, `Your OTP is: ${otp}`);
-
-    console.log(`OTP for ${role}:`, otp); // for dev only
+    // TODO: Send OTP via mail service
+    console.log(`OTP for ${role}:`, otp); // dev-only
 
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
@@ -49,7 +45,7 @@ const verifyOtpForPasswordReset = async (req, res, next) => {
     }
 
     const UserModel = userModels[role];
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email, role }); // Match both email and role
     if (!user) {
       return res.status(404).json({ message: `${role} not found` });
     }
@@ -76,5 +72,4 @@ const verifyOtpForPasswordReset = async (req, res, next) => {
   }
 };
 
-
-  module.exports = { sendOtpForPasswordReset,verifyOtpForPasswordReset };
+module.exports = { sendOtpForPasswordReset, verifyOtpForPasswordReset };

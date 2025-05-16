@@ -21,8 +21,11 @@ router.post("/admin-reset-password", resetPassword);
 router.post("/send-otp", sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
 router.get("/get-count", jwtAuthentication,verifyAdmin, getUserCounts);
-router.post("/addseller",jwtAuthentication, verifyAdmin, upload.single("tradeLicenseCopy"), addSellerByAdmin);
-router.post("/addbuyer",jwtAuthentication, verifyAdmin, addBuyerByAdmin);
+router.post("/addseller",jwtAuthentication, verifyAdmin, upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "tradeLicenseCopy", maxCount: 1 },
+  ]), addSellerByAdmin);
+router.post("/addbuyer",jwtAuthentication, upload.single("profileImage"), verifyAdmin, addBuyerByAdmin);
 router.post("/verify-user", jwtAuthentication, verifyAdmin, updateUserStatus) ;
 router.get("/get-all-users", jwtAuthentication,verifyAdmin, getAllUsers);
 router.get("/get-user/:role/:id", jwtAuthentication, verifyAdmin, getUserById);

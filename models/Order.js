@@ -1,4 +1,3 @@
-// models/Order.js
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
@@ -9,12 +8,12 @@ const orderSchema = new mongoose.Schema({
   },
   buyer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Buyer',
+    ref: 'User', // Changed from 'Buyer'
     required: true
   },
   seller: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Seller',
+    ref: 'User', // Changed from 'Seller'
     required: true
   },
   quantity: {

@@ -1,7 +1,7 @@
 const Product = require("../../models/Products");
-const userModels = require("../../utils/userModals");
+const User = require("../../models/User");
+const Admin = require("../../models/Admin");
 const path = require("path");
-const jwt = require("jsonwebtoken");
 
 const addProduct = async (req, res, next) => {
   try {
@@ -18,7 +18,6 @@ const addProduct = async (req, res, next) => {
       expiryDate,
     } = req.body;
 
-    // Check if images are uploaded
     if (!req.files || req.files.length < 1) {
       return res
         .status(400)
@@ -26,12 +25,10 @@ const addProduct = async (req, res, next) => {
     }
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-
     const imagePaths = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );
 
-    // Prepare price data
     const pricePerKg = {
       ...(priceAED && { AED: parseFloat(priceAED) }),
       ...(priceINR && { INR: parseFloat(priceINR) }),
@@ -40,23 +37,31 @@ const addProduct = async (req, res, next) => {
 
     const { id, role } = req.user;
 
-    const userModel = userModels[role];
-    if (!userModel) {
-      return res.status(403).json({ message: "Invalid user role." });
+    if (!["admin", "seller"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only admin or seller can add products." });
     }
 
     if (!expiryDate || new Date(expiryDate) <= new Date()) {
-      return res.status(400).json({ message: "Expiry date must be a future date." });
+      return res
+        .status(400)
+        .json({ message: "Expiry date must be a future date." });
     }
-    
 
-    // Find the user by their ID to ensure they exist
-    const user = await userModel.findById(id);
+    let user = null;
+    if (role === "admin") {
+      user = await Admin.findById(id);
+    } else {
+      user = await User.findOne({ _id: id, role: "seller" }); 
+    }
+
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return res
+        .status(404)
+        .json({ message: "User not found or not authorized." });
     }
 
-    // Create the new product
     const newProduct = new Product({
       itemCategory: itemCategory.toLowerCase(),
       itemName,
@@ -67,28 +72,33 @@ const addProduct = async (req, res, next) => {
       images: imagePaths,
       expiryDate,
       pricePerKg,
-      addedBy: id, // Set the logged-in user's ID
-      addedByModel: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize the role (e.g., "admin" -> "Admin")
+      addedBy: id,
+      addedByModel: role === "admin" ? "Admin" : "User",
     });
 
     await newProduct.save();
 
-    res
-      .status(201)
-      .json({ message: "Product added successfully", product: newProduct });
+    res.status(201).json({
+      message: "Product added successfully",
+      product: newProduct,
+    });
   } catch (error) {
-    console.error(error); // Log the error for debugging purposes
-    next(error); // Pass the error to the global error handler (if any)
+    console.error("Add product error:", error);
+    next(error);
   }
 };
 
-//View all products
 const getAllProducts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", category, status } = req.query;
+    const { id, role } = req.user; 
 
-    // Build filter object
     const filter = {};
+
+    if (role === "seller") {
+      filter.addedBy = id;
+      filter.addedByModel = "User"; 
+    }
 
     if (category) {
       filter.itemCategory = category;
@@ -98,7 +108,6 @@ const getAllProducts = async (req, res, next) => {
       filter.itemName = { $regex: search, $options: "i" };
     }
 
-    // Handle expiry filtering
     const currentDate = new Date();
     if (status === "unexpired") {
       filter.expiryDate = { $gt: currentDate };
@@ -125,7 +134,6 @@ const getAllProducts = async (req, res, next) => {
   }
 };
 
-
 // View single product
 const getProductById = async (req, res, next) => {
   try {
@@ -141,7 +149,6 @@ const getProductById = async (req, res, next) => {
 const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const {
       itemCategory,
       itemName,
@@ -152,49 +159,51 @@ const updateProduct = async (req, res, next) => {
       priceAED,
       priceINR,
       priceUSD,
-      seller,
       expiryDate,
     } = req.body;
 
+    const { id: userId, role } = req.user;
+
+    
     const pricePerKg = {
       ...(priceAED && { AED: parseFloat(priceAED) }),
       ...(priceINR && { INR: parseFloat(priceINR) }),
       ...(priceUSD && { USD: parseFloat(priceUSD) }),
     };
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    let newImagePaths = [];
-    if (req.body.addedByModel === "Seller" && !req.body.seller) {
-      return res.status(400).json({ message: "Seller is required when addedByModel is 'Seller'" });
-    }
-    
-    if (req.files && req.files.length > 0) {
-      newImagePaths = req.files.map(
-        (file) => `${baseUrl}/product-images/${file.filename}`
-      );
+    if (expiryDate && new Date(expiryDate) <= new Date()) {
+      return res.status(400).json({ message: "Expiry date must be a future date." });
     }
 
-    // Find the product
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // Optionally: merge old and new images or replace them
-    const finalImages =
-      newImagePaths.length > 0 ? newImagePaths : product.images;
+    if (role === "seller" && String(product.addedBy) !== userId) {
+      return res.status(403).json({ message: "Unauthorized to update this product." });
+    }
 
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    let newImagePaths = [];
+    if (req.files && req.files.length > 0) {
+      newImagePaths = req.files.map(
+        (file) => `${baseUrl}/uploads/products/${file.filename}`
+      );
+    }
+
+    const finalImages = newImagePaths.length > 0 ? newImagePaths : product.images;
+
+    // Update fields
     product.itemCategory = itemCategory || product.itemCategory;
     product.itemName = itemName || product.itemName;
     product.itemSubCategory = itemSubCategory || product.itemSubCategory;
-    product.seller=seller||product.seller;
     product.country = country || product.country;
-    product.expiryDate= expiryDate|| product.expiryDate;
+    product.expiryDate = expiryDate || product.expiryDate;
     product.availableKg = availableKg || product.availableKg;
     product.description = description || product.description;
-    product.pricePerKg = Object.keys(pricePerKg).length
-      ? pricePerKg
-      : product.pricePerKg;
+    product.pricePerKg = Object.keys(pricePerKg).length ? pricePerKg : product.pricePerKg;
     product.images = finalImages;
- 
+
     await product.save();
 
     res.status(200).json({ message: "Product updated successfully", product });
@@ -202,16 +211,34 @@ const updateProduct = async (req, res, next) => {
     next(error);
   }
 };
+
 // Delete product
 const deleteProduct = async (req, res, next) => {
   try {
-    const deleted = await Product.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Product not found" });
-    res.status(200).json({ message: "Product deleted" });
+    const { id: productId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (role === "admin") {
+      await product.deleteOne();
+      return res.status(200).json({ message: "Product deleted by admin" });
+    }
+
+ 
+    if (role === "seller" && String(product.addedBy) === userId) {
+      await product.deleteOne();
+      return res.status(200).json({ message: "Product deleted by seller" });
+    }
+
+    return res.status(403).json({ message: "Unauthorized to delete this product" });
+
   } catch (error) {
     next(error);
   }
 };
+
 
 module.exports = {
   addProduct,

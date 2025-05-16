@@ -7,21 +7,18 @@ const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
 router.post("/refresh",refresh);
 
-
 router.post(
   "/buyer-sign-up",
-  (req, res, next) => {
-    req.uploadFolder = "uploads/profile"; 
-    next();
-  },
   upload.single("profileImage"),
   registerBuyer
 );
+
+
 router.post("/buyer-login",loginBuyer);
 router.post("/send-otp",sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
 router.post("/buyer-reset-password", resetPassword);
 router.post("/refresh-buyer", refresh);
-router.put("/edit/:id", jwtAuthentication, editBuyer);
+router.put("/edit/:id", jwtAuthentication, upload.single("profileImage"), editBuyer);
 
 module.exports = router;

@@ -1,11 +1,10 @@
 const Admin = require("../models/Admin");
-const Seller = require("../models/Seller");
-const Buyer = require("../models/Buyer");
+const User = require("../models/User");
 
 const userModels = {
   admin: Admin,
-  seller: Seller,
-  buyer: Buyer,
+  seller: User,  // Both seller and buyer point to User model
+  buyer: User,
 };
 
 module.exports = userModels;

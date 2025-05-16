@@ -1,5 +1,4 @@
-const Buyer = require("../../models/Buyer");
-const Seller = require("../../models/Seller");
+const User=require("../../models/User")
 
 const subscribeUser = async (req, res, next) => {
   const { id: userId, role: userType } = req.user;
