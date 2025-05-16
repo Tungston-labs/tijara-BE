@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
-
+const SubscriptionPlan=require("../../models/SubscriptionPlan")
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
@@ -529,6 +529,72 @@ const getPendingUsersByRole = async (req, res) => {
   }
 };
 
+// Create new plan (Admin only)
+const createSubscriptionPlan = async (req, res, next) => {
+  try {
+    const { name, duration, price, description } = req.body;
+
+    // Validate required fields
+    if (!name || !duration || !price || !description) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (!["monthly", "annually"].includes(duration)) {
+      return res.status(400).json({ message: "Invalid duration. Must be 'monthly' or 'annually'" });
+    }
+
+    // Check for duplicate plan name
+    const existing = await SubscriptionPlan.findOne({ name });
+    if (existing) {
+      return res.status(409).json({ message: "Plan with this name already exists" });
+    }
+
+    const newPlan = new SubscriptionPlan({
+      name,
+      duration,
+      price,
+      description,
+    });
+
+    await newPlan.save();
+
+    res.status(201).json({ message: "Subscription plan created", plan: newPlan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update plan (Admin only)
+const updatePlan = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updated = await SubscriptionPlan.findByIdAndUpdate(id, req.body, { new: true });
+
+    if (!updated) return res.status(404).json({ message: "Plan not found" });
+
+    res.status(200).json({ message: "Plan updated", plan: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete plan (Admin only)
+const deletePlan = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await SubscriptionPlan.findByIdAndDelete(id);
+
+    if (!deleted) return res.status(404).json({ message: "Plan not found" });
+
+    res.status(200).json({ message: "Plan deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
 module.exports = {
   signUp,
   Login,
@@ -542,4 +608,9 @@ module.exports = {
   addBuyerByAdmin,
   getUserCounts,
   getPendingUsersByRole,
+  createSubscriptionPlan,
+  updatePlan,
+  deletePlan,
+  
+
 };

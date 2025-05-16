@@ -35,39 +35,41 @@ const userSchema = new mongoose.Schema(
     companyName: {
       type: String,
       required: function () {
-      return this.role === 'seller';
-    },
+        return this.role === "seller";
+      },
     },
     tradeLicenseNumber: {
       type: String,
       required: function () {
-      return this.role === 'seller';
+        return this.role === "seller";
+      },
     },
-  },
     managerName: {
       type: String,
-     required: function () {
-      return this.role === 'seller';
-    },
+      required: function () {
+        return this.role === "seller";
+      },
     },
     tradeLicenseCopy: {
       type: String, // This will store the file path or URL
       required: function () {
-      return this.role === 'seller';
-    },
+        return this.role === "seller";
+      },
     },
     profileImage: {
       type: String,
       default: "",
     },
-   subscription: {
-  planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan' },
-  startDate: { type: Date },
-  endDate: { type: Date },
-  status: { type: String, enum: ['active', 'expired', 'cancelled'], default: 'active' },
-},
-  
-
+    subscription: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: "SubscriptionPlan" },
+      startDate: { type: Date },
+      endDate: { type: Date },
+      status: {
+        type: String,
+        enum: ["active", "expired", "cancelled"],
+        default: "active",
+      },
+    },
   },
   { timestamps: true }
 );
