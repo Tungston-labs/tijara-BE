@@ -1,6 +1,6 @@
 const SubscriptionPlan = require("../../models/SubscriptionPlan");
 const UserSubscription = require("../../models/SubscriptionHistory");
-
+const User=require('../../models/User')
 
 // Subscribe to a plan
 const subscribeToPlan = async (req, res, next) => {
@@ -13,8 +13,8 @@ const subscribeToPlan = async (req, res, next) => {
 
     const now = new Date();
     const endDate = new Date(now);
-    if (plan.duration === "weekly") {
-      endDate.setDate(now.getDate() + 7);
+    if (plan.duration === "monthly") {
+      endDate.setMonth(now.getDate() + 7);
     } else if (plan.duration === "annually") {
       endDate.setFullYear(now.getFullYear() + 1);
     }
@@ -45,8 +45,9 @@ const cancelSubscription = async (req, res, next) => {
     const userId = req.user.id;
 
     const currentSub = await UserSubscription.findOne({ user: userId, isActive: true });
-    if (!currentSub) return res.status(404).json({ message: "No active subscription found" });
+       console.log("Active subscription found:", currentSub);
 
+    if (!currentSub) return res.status(404).json({ message: "No active subscription found" });
     currentSub.isActive = false;
     await currentSub.save();
 
