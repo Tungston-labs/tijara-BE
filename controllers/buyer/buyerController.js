@@ -1,0 +1,218 @@
+const User = require("../../models/User");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const validator = require("validator");
+
+const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+const registerBuyer = async (req, res, next) => {
+  try {
+    const { name, phone, email, password } = req.body;
+
+    console.log("File received:", req.file);
+    console.log("Request body:", req.body);
+
+    // Extract profileImage path from req.file
+    const profileImage = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/profile/${req.file.filename}`
+      : null;
+
+    if (!name || !phone || !email || !password || !profileImage) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingBuyer = await User.findOne({ email });
+    if (existingBuyer) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newBuyer = new User({
+      name,
+      phone,
+      email,
+      password: hashedPassword,
+      profileImage,
+      role: "buyer",
+    });
+
+await newBuyer.save();
+
+// Exclude the password in the response
+const { password: _, ...buyerData } = newBuyer.toObject();
+res.status(201).json({
+  message: "Buyer registered successfully",
+  buyer: buyerData,
+});
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const loginBuyer = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400);
+      throw new Error("Please provide both email and password");
+    }
+
+    const buyer = await User.findOne({ email });
+    if (!buyer) {
+      res.status(401);
+      throw new Error("Invalid email or password");
+    }
+
+    const isMatch = await bcrypt.compare(password, buyer.password);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error("Invalid email or password");
+    }
+    if (buyer.status !== "approved") {
+      return res.status(403).json(`Your account is currently ${buyer.status}`);
+    }
+
+    const accessToken = jwt.sign(
+      { id: buyer._id, email: buyer.email, role: buyer.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: buyer._id, email: buyer.email, role: buyer.role },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      name: buyer.name,
+      accessToken,
+      buyer: buyer.role,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const checkResetToken = async (req, res, next) => {
+  try {
+    const resetToken = req.cookies?.resetToken;
+
+    if (!resetToken) {
+      const error = new Error("Unauthorized or token expired");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+    } catch (err) {
+      err.statusCode = 401;
+      err.message = "Invalid or expired token";
+      throw err;
+    }
+
+    const admin = await User.findOne({ email: decoded.email, role });
+    if (!admin) {
+      const error = new Error("Buyer not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json({ message: "Token verified" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    const resetToken = req.cookies?.resetToken;
+    if (!resetToken) {
+      return res.status(401).json({ message: "Unauthorized or token is required" });
+    }
+
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        message:
+          "Password must be 8-32 chars long, include uppercase, lowercase, number, and special character",
+      });
+    }
+
+    const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+    const { email, role } = decoded;
+
+    const user = await User.findOne({ email, role });
+    if (!user) {
+      return res.status(404).json({ message: `${role} not found` });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const editBuyer = async (req, res, next) => {
+  try {
+    const buyerId = req.user.id; // ID from JWT
+    const updates = req.body;
+
+    if (req.user.role !== "buyer") {
+      return res.status(403).json({ message: "Unauthorized " });
+    }
+  
+    const updatedBuyer = await User.findByIdAndUpdate(buyerId, updates, {
+      new: true,
+    });
+    if (req.file) {
+      updates.profileImage = `/uploads/buyers/${req.file.filename}`;
+    }
+
+
+    if (!updatedBuyer) {
+      return res.status(404).json({ message: "Buyer not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Buyer updated successfully", buyer: updatedBuyer });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  registerBuyer,
+  loginBuyer,
+  checkResetToken,
+  resetPassword,
+  editBuyer,
+};
