@@ -27,7 +27,7 @@ router.get("/history", jwtAuthentication, getSubscriptionHistory);
 
 
 router.post("/addplan",jwtAuthentication,verifyAdmin, createSubscriptionPlan);
-router.post("/updateplan/:id",jwtAuthentication,verifyAdmin, updatePlan);
+router.put("/updateplan/:id",jwtAuthentication,verifyAdmin, updatePlan);
 router.post("/deleteplan/:id",jwtAuthentication,verifyAdmin, deletePlan);
 router.post("/getallplans", jwtAuthentication,getAllPlans);
 router.post("/getsingleplan/:id", jwtAuthentication ,getSinglePlan);

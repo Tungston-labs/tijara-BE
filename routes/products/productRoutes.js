@@ -3,7 +3,7 @@ const router = express.Router();
 
 const upload = require("../../middleware/upload");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
-const {  addProduct, getAllProducts, getProductById, updateProduct, deleteProduct } = require("../../controllers/products/productController");
+const {  addProduct, getAllProducts, getProductById, updateProduct, deleteProduct, getItemNames, getSubCategoriesByItemName } = require("../../controllers/products/productController");
 
 // Middleware to allow only admin or seller
 const allowAdminOrSeller = (req, res, next) => {
@@ -29,6 +29,8 @@ router.post(
   router.get("/get-productsbyid/:id", jwtAuthentication, allowAdminOrSeller, getProductById);
   router.put("/update/:id", jwtAuthentication, upload.array("images", 5), allowAdminOrSeller, updateProduct); 
   router.delete("/delete-product/:id",jwtAuthentication, allowAdminOrSeller,deleteProduct)
-  
+  router.get("/item-names", jwtAuthentication, allowAdminOrSeller, getItemNames);
+  router.get("/item-sub-category/:itemName", jwtAuthentication, allowAdminOrSeller, getSubCategoriesByItemName);
+
 
 module.exports = router;
