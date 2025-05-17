@@ -53,7 +53,7 @@ const addProduct = async (req, res, next) => {
     if (role === "admin") {
       user = await Admin.findById(id);
     } else {
-      user = await User.findOne({ _id: id, role: "seller" }); 
+      user = await User.findOne({ _id: id, role: "seller" });
     }
 
     if (!user) {
@@ -91,13 +91,13 @@ const addProduct = async (req, res, next) => {
 const getAllProducts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", category, status } = req.query;
-    const { id, role } = req.user; 
+    const { id, role } = req.user;
 
     const filter = {};
 
     if (role === "seller") {
       filter.addedBy = id;
-      filter.addedByModel = "User"; 
+      filter.addedByModel = "User";
     }
 
     if (category) {
@@ -164,7 +164,6 @@ const updateProduct = async (req, res, next) => {
 
     const { id: userId, role } = req.user;
 
-    
     const pricePerKg = {
       ...(priceAED && { AED: parseFloat(priceAED) }),
       ...(priceINR && { INR: parseFloat(priceINR) }),
@@ -172,16 +171,19 @@ const updateProduct = async (req, res, next) => {
     };
 
     if (expiryDate && new Date(expiryDate) <= new Date()) {
-      return res.status(400).json({ message: "Expiry date must be a future date." });
+      return res
+        .status(400)
+        .json({ message: "Expiry date must be a future date." });
     }
 
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     if (role === "seller" && String(product.addedBy) !== userId) {
-      return res.status(403).json({ message: "Unauthorized to update this product." });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to update this product." });
     }
-
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     let newImagePaths = [];
@@ -191,7 +193,8 @@ const updateProduct = async (req, res, next) => {
       );
     }
 
-    const finalImages = newImagePaths.length > 0 ? newImagePaths : product.images;
+    const finalImages =
+      newImagePaths.length > 0 ? newImagePaths : product.images;
 
     // Update fields
     product.itemCategory = itemCategory || product.itemCategory;
@@ -201,7 +204,9 @@ const updateProduct = async (req, res, next) => {
     product.expiryDate = expiryDate || product.expiryDate;
     product.availableKg = availableKg || product.availableKg;
     product.description = description || product.description;
-    product.pricePerKg = Object.keys(pricePerKg).length ? pricePerKg : product.pricePerKg;
+    product.pricePerKg = Object.keys(pricePerKg).length
+      ? pricePerKg
+      : product.pricePerKg;
     product.images = finalImages;
 
     await product.save();
@@ -226,18 +231,63 @@ const deleteProduct = async (req, res, next) => {
       return res.status(200).json({ message: "Product deleted by admin" });
     }
 
- 
     if (role === "seller" && String(product.addedBy) === userId) {
       await product.deleteOne();
       return res.status(200).json({ message: "Product deleted by seller" });
     }
 
-    return res.status(403).json({ message: "Unauthorized to delete this product" });
-
+    return res
+      .status(403)
+      .json({ message: "Unauthorized to delete this product" });
   } catch (error) {
     next(error);
   }
 };
+const getItemNames = async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    let itemNames;
+    if (search) {
+      // Case-insensitive partial match using regex
+      const regex = new RegExp(search, "i");
+      itemNames = await Product.find({ itemName: regex }).distinct("itemName");
+    } else {
+      itemNames = await Product.distinct("itemName");
+    }
+
+    res.status(200).json({ itemNames });
+  } catch (error) {
+    console.error("Fetch item names error:", error);
+    res.status(500).json({ message: "Failed to fetch item names" });
+  }
+};
+
+const getSubCategoriesByItemName = async (req, res) => {
+  const { itemName } = req.params;
+  const { search } = req.query;
+
+  try {
+    const match = {
+      itemName: new RegExp(`^${itemName}$`, "i") // exact match, case-insensitive
+    };
+    
+
+    if (search) {
+      match.itemSubCategory = new RegExp(search, "i");
+    }
+
+    const subCategories = await Product
+      .find(match)
+      .distinct("itemSubCategory");
+    
+    res.status(200).json({ itemName, subCategories });
+  } catch (error) {
+    console.error("Fetch subcategories error:", error);
+    res.status(500).json({ message: "Failed to fetch subcategories" });
+  }
+};
+
 
 
 module.exports = {
@@ -246,4 +296,6 @@ module.exports = {
   getAllProducts,
   getProductById,
   updateProduct,
+  getItemNames,
+  getSubCategoriesByItemName,
 };
