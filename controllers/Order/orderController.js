@@ -1,6 +1,8 @@
 const Product = require('../../models/Products');
 const Order = require('../../models/Order');
-const User=require("../../models/User")
+const User = require("../../models/User");
+
+const { notifySellerOfOrder, notifyBuyerOnAcceptance } = require("../../controllers/notification/notificationController");
 
 const createOrderRequest = async (req, res, next) => {
   try {
@@ -34,7 +36,7 @@ const createOrderRequest = async (req, res, next) => {
 
     const order = new Order({
       product: product._id,
-      buyer: userId,         // can be either seller or buyer
+      buyer: userId,
       seller: product.addedBy,
       quantity,
       status: "pending"
@@ -42,13 +44,18 @@ const createOrderRequest = async (req, res, next) => {
 
     await order.save();
 
+    // 🔔 Notify seller
+    const buyer = await User.findById(userId);
+    const seller = await User.findById(product.addedBy);
+    await notifySellerOfOrder(buyer, seller, product, quantity);
+
     res.status(201).json({ message: "Order request sent to seller", order });
   } catch (err) {
     next(err);
   }
 };
 
-  
+
 const updateOrderStatus = async (req, res, next) => {
   try {
     const { id: userId, role } = req.user;
@@ -92,11 +99,17 @@ const updateOrderStatus = async (req, res, next) => {
     order.status = status;
     await order.save();
 
+    // 🔔 Notify buyer if approved
+    if (status === 'approved') {
+      const buyer = await User.findById(order.buyer);
+      const seller = await User.findById(userId);
+      await notifyBuyerOnAcceptance(seller, buyer, order.product, order.quantity);
+    }
+
     res.status(200).json({ message: `Order ${status}`, order });
   } catch (err) {
     next(err);
   }
 };
 
-
-module.exports = {createOrderRequest, updateOrderStatus};
+module.exports = { createOrderRequest, updateOrderStatus };

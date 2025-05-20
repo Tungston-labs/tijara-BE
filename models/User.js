@@ -60,16 +60,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    subscription: {
-      planId: { type: mongoose.Schema.Types.ObjectId, ref: "SubscriptionPlan" },
-      startDate: { type: Date },
-      endDate: { type: Date },
-      status: {
-        type: String,
-        enum: ["active", "expired", "cancelled"],
-        default: "active",
-      },
-    },
+subscription: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Subscription",
+},
+fcmToken: {
+  type: String,
+  default: null,
+},
+
+
   },
   { timestamps: true }
 );
