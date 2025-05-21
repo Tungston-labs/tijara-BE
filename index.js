@@ -22,11 +22,12 @@ app.use("/welcome", (req, res) => {
 app.use("/admin/auth", require("./routes/admin/authRoutes"));
 app.use("/buyer", require("./routes/buyer/buyerRoutes"));
 app.use("/seller", require("./routes/seller/sellerRoutes"));
-app.use("/product",require('./routes/products/productRoutes'))
+app.use("/product",require('./routes/products/productRoutes'));
 app.use("/admin/agent",require("./routes/admin/agentRoutes"));
 app.use("/subscription",require("./routes/Subscription/subscribeRoutes"));
 app.use("/orders",require("./routes/order/orderRoutes"));
-app.use("/subscription" , require('./routes/Subscription/subscribeRoutes'))
+app.use("/subscription" , require('./routes/Subscription/subscribeRoutes'));
+app.use("/items" , require('./routes/itemRoutes/itemRoutes'));
 
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);

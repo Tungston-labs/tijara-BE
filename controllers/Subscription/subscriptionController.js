@@ -5,7 +5,7 @@ const User=require('../../models/User')
 // Subscribe to a plan
 const subscribeToPlan = async (req, res, next) => {
   try {
-    const { id } = req.body;
+    const { id, paymentType } = req.body;
     const userId = req.user.id;
 
     const plan = await SubscriptionPlan.findById(id);
@@ -13,23 +13,28 @@ const subscribeToPlan = async (req, res, next) => {
 
     const now = new Date();
     const endDate = new Date(now);
+
     if (plan.duration === "monthly") {
-      endDate.setMonth(now.getDate() + 7);
+      endDate.setMonth(endDate.getMonth() + 1);
     } else if (plan.duration === "annually") {
-      endDate.setFullYear(now.getFullYear() + 1);
+      endDate.setFullYear(endDate.getFullYear() + 1);
     }
 
-    // Mark all previous subscriptions as inactive
-    await UserSubscription.updateMany({ user: userId, isActive: true }, { isActive: false });
+    // Mark previous subscriptions as cancelled
+    await UserSubscription.updateMany(
+      { user: userId, status: "active" },
+      { status: "cancelled" }
+    );
 
-   const subscription = new UserSubscription({
-  user: userId,
-  plan: plan._id,
-  startDate: now,
-  endDate,
-  isActive: true,
-  status: "active",
-});
+    const subscription = new UserSubscription({
+      user: userId,
+      plan: plan._id,
+      startDate: now,
+      endDate,
+      status: "active",
+      paymentType, // e.g., "card", "upi", etc.
+      paymentStatus: "completed", // or "pending"/"failed"
+    });
 
     await subscription.save();
 
@@ -39,16 +44,16 @@ const subscribeToPlan = async (req, res, next) => {
   }
 };
 
+
 // Cancel current subscription
 const cancelSubscription = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const currentSub = await UserSubscription.findOne({ user: userId, isActive: true });
-       console.log("Active subscription found:", currentSub);
-
+    const currentSub = await UserSubscription.findOne({ user: userId, status: "active" });
     if (!currentSub) return res.status(404).json({ message: "No active subscription found" });
-    currentSub.isActive = false;
+
+    currentSub.status = "cancelled";
     await currentSub.save();
 
     res.status(200).json({ message: "Subscription cancelled", subscription: currentSub });
