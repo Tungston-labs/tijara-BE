@@ -37,5 +37,13 @@ router.put("/edit-user/:id", upload.fields([
     { name: "tradeLicenseCopy", maxCount: 1 },
     { name: "profileImage", maxCount: 1 },
   ]), jwtAuthentication, verifyAdmin, editUserByAdmin);
-router.put("/edit-user/:role/:id", jwtAuthentication,verifyAdmin ,editUserByAdmin);
-module.exports=router;
+router.put(
+  "/edit-user/:role/:id",
+  jwtAuthentication,
+  verifyAdmin,
+  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "tradeLicenseCopy", maxCount: 1 },
+  ]),
+  editUserByAdmin
+);module.exports=router;
