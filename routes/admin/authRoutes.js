@@ -1,5 +1,5 @@
 const express=require("express");
-const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole}=require("../../controllers/admin/authController");
+const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin}=require("../../controllers/admin/authController");
 const router=express.Router();
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
@@ -33,5 +33,9 @@ router.post("/verify-user", jwtAuthentication,verifyAdmin, updateUserStatus);
 router.get("/unapproved-users", jwtAuthentication,verifyAdmin, getPendingUsersByRole);
 router.delete("/delete-user/:role/:id", jwtAuthentication, verifyAdmin, deleteUser);
 
+router.put("/edit-user/:id", upload.fields([
+    { name: "tradeLicenseCopy", maxCount: 1 },
+    { name: "profileImage", maxCount: 1 },
+  ]), jwtAuthentication, verifyAdmin, editUserByAdmin);
 // router.put("/edit-user/:role/:id", jwtAuth, editUser);
 module.exports=router;

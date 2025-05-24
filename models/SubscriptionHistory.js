@@ -12,7 +12,7 @@ const subscriptionHistorySchema = new mongoose.Schema({
     required: true,
   },
   startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true }, // Expiry date
+  endDate: { type: Date, required: true }, 
   status: {
     type: String,
     enum: ["active", "expired", "cancelled"],
@@ -34,6 +34,7 @@ const subscriptionHistorySchema = new mongoose.Schema({
   timestamps: true, // adds createdAt and updatedAt
 });
 
+subscriptionHistorySchema.index({ user: 1, startDate: -1 });
 
 
 module.exports = mongoose.model('SubscriptionHistory', subscriptionHistorySchema);

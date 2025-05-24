@@ -2,6 +2,7 @@ const Admin = require("../../models/Admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
+const SubscriptionHistory=require("../../models/SubscriptionHistory")
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
 const SubscriptionPlan=require("../../models/SubscriptionPlan")
@@ -247,7 +248,7 @@ const addBuyerByAdmin = async (req, res, next) => {
 
     // Extract profileImage path from req.file
     const profileImage = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/profile/${
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
           req.file.filename
         }`
       : null;
@@ -323,7 +324,7 @@ const addSellerByAdmin = async (req, res, next) => {
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/profile/${req.files.profileImage[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Input validations
     if (!usernameRegex.test(name)) {
@@ -404,31 +405,26 @@ const updateUserStatus = async (req, res) => {
   res.status(200).json({ message: `${role} status updated to ${status}` });
 };
 
-// Get all users by role
+
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const { role, search = "", page = 1, limit = 10, status } = req.query;
+    const { role, search = "", page = 1, limit = 10 } = req.query;
 
     // Ensure valid role
     if (!["seller", "buyer"].includes(role)) {
-      return res
-        .status(400)
-        .json({ message: "Role must be 'seller' or 'buyer'" });
+      return res.status(400).json({ message: "Role must be 'seller' or 'buyer'" });
     }
 
-    // Build base query
+    // Only return users with status: "approved"
     const query = {
-      role, // Match specific role
+      role,
+      status: "approved", // <-- Always filter for approved users
       $or: [
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
       ],
     };
-
-    if (status) {
-      query.status = status;
-    }
 
     const skip = Math.max((parseInt(page) - 1) * parseInt(limit), 0);
 
@@ -436,10 +432,26 @@ const getAllUsers = async (req, res, next) => {
     const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
+
+    // Attach latest subscription for each user (if exists)
+    const usersWithSubscriptions = await Promise.all(
+      users.map(async (user) => {
+        const latestSubscription = await SubscriptionHistory.findOne({ user: user._id })
+          .sort({ startDate: -1 })
+          .populate("plan")
+          .lean();
+
+        return {
+          ...user,
+          subscription: latestSubscription || null,
+        };
+      })
+    );
 
     res.status(200).json({
-      users,
+      users: usersWithSubscriptions,
       total,
       page: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit)),
@@ -448,6 +460,7 @@ const getAllUsers = async (req, res, next) => {
     next(error);
   }
 };
+
 
 //Get single user
 
@@ -496,7 +509,7 @@ const deleteUser = async (req, res) => {
   res.status(200).json({ message: `${role} deleted successfully` });
 };
 const getPendingUsersByRole = async (req, res) => {
-  const { role, search = "", page = 1, limit = 2 } = req.query;
+  const { role, search = "", page = 1, limit = 10 } = req.query;
 
   if (!["buyer", "seller"].includes(role)) {
     return res.status(400).json({ message: "Invalid role provided" });
@@ -592,6 +605,46 @@ const deletePlan = async (req, res, next) => {
   }
 };
 
+const editUserByAdmin = async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  const files = req.files;
+
+  try {
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Update text fields
+    const commonFields = ["name", "email", "phone", "status"];
+    const sellerFields = ["companyName", "managerName", "tradeLicenseNumber"];
+
+    commonFields.forEach((field) => {
+      if (updates[field] !== undefined) user[field] = updates[field];
+    });
+
+    if (user.role === "seller") {
+      sellerFields.forEach((field) => {
+        if (updates[field] !== undefined) user[field] = updates[field];
+      });
+
+      if (files?.tradeLicenseCopy?.[0]) {
+        user.tradeLicenseCopy = `/uploads/${files.tradeLicenseCopy[0].filename}`;
+      }
+    }
+
+    if (files?.profileImage?.[0]) {
+      user.profileImage = `/uploads/${files.profileImage[0].filename}`;
+    }
+
+    const updatedUser = await user.save();
+    res.status(200).json({ message: "User updated successfully", user: updatedUser });
+  } catch (error) {
+    console.error("Admin edit user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 
 
@@ -611,6 +664,7 @@ module.exports = {
   createSubscriptionPlan,
   updatePlan,
   deletePlan,
+  editUserByAdmin
   
 
 };

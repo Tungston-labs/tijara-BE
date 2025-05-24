@@ -1,6 +1,7 @@
 // controllers/itemSubCategoryController.js
 const ItemSubCategory = require("../../models/ItemSubCategory");
-
+const ItemNames=require('../../models/ItemName');
+const ItemName = require("../../models/ItemName");
 const addSubCategory = async (req, res,next) => {
   try {
     const { name, itemNameId } = req.body;
@@ -12,22 +13,41 @@ const addSubCategory = async (req, res,next) => {
   }
 };
 
-// controllers/itemSubCategoryController.js
-const getSubCategories = async (req, res,next) => {
+
+const getSubCategories = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search = "", itemNameId } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
     const skip = (page - 1) * limit;
 
-    let query = {};
-    if (itemNameId) {
-      query.itemName = itemNameId;
-    }
+   
+    let matchingItemNames = [];
     if (search) {
-      query.name = { $regex: search, $options: "i" };
+      matchingItemNames = await ItemName.find({
+        name: { $regex: search, $options: "i" }, // case-insensitive regex
+      }).select("_id");
+    } else {
+      // If no search, get all item names (or you can skip this)
+      matchingItemNames = await ItemName.find().select("_id");
     }
 
+    const itemNameIds = matchingItemNames.map(doc => doc._id);
+
+    if (itemNameIds.length === 0) {
+      // No matching itemNames, so no subcategories
+      return res.status(200).json({
+        subCategories: [],
+        pagination: { total: 0, page: parseInt(page), pages: 0, limit: parseInt(limit) },
+      });
+    }
+
+    // 2. Find ItemSubCategories with itemName in those matching IDs
+    const query = { itemName: { $in: itemNameIds } };
+
     const [subCategories, total] = await Promise.all([
-      ItemSubCategory.find(query).skip(skip).limit(parseInt(limit)).populate("itemName"),
+      ItemSubCategory.find(query)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .populate("itemName"),
       ItemSubCategory.countDocuments(query),
     ]);
 
@@ -41,8 +61,9 @@ const getSubCategories = async (req, res,next) => {
       },
     });
   } catch (err) {
-    next(err); 
+    next(err);
   }
 };
+
 
 module.exports={addSubCategory, getSubCategories};

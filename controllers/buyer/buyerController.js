@@ -15,7 +15,7 @@ const registerBuyer = async (req, res, next) => {
 
     // Extract profileImage path from req.file
     const profileImage = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/profile/${req.file.filename}`
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyes/${req.file.filename}`
       : null;
 
     if (!name || !phone || !email || !password || !profileImage) {

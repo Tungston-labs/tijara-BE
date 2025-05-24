@@ -1,12 +1,22 @@
 // controllers/admin/agentController.js
 const Agent = require("../../models/Agent");
 
-const addAgent = async (req, res,next) => {
+const validator = require("validator");
+
+const addAgent = async (req, res, next) => {
   try {
     const { agentName, email, phone, address } = req.body;
 
     if (!agentName || !email || !phone || !address) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    if (!validator.isMobilePhone(phone, "en-IN")) {
+      return res.status(400).json({ message: "Invalid phone number" });
     }
 
     const existing = await Agent.findOne({ $or: [{ email }, { phone }] });
@@ -23,9 +33,10 @@ const addAgent = async (req, res,next) => {
       .status(201)
       .json({ message: "Agent added successfully", agent: newAgent });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
+
 
 const deleteAgent = async (req, res) => {
   try {
@@ -84,4 +95,33 @@ const getAgentById = async (req, res, next) => {
   }
 };
 
-module.exports = { addAgent, deleteAgent, getAllAgents, getAgentById };
+const editAgent = async (req, res) => {
+  const { id } = req.params; // agent id from URL param
+  const { agentName, email, phone, address } = req.body; // fields to update
+
+  try {
+    // Find agent by id and update, returning the updated document
+    const updatedAgent = await Agent.findByIdAndUpdate(
+      id,
+      { agentName, email, phone, address },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedAgent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    res.status(200).json({ message: "Agent updated successfully", agent: updatedAgent });
+  } catch (error) {
+    // Handle duplicate key errors (e.g., email or phone unique constraint)
+    if (error.code === 11000) {
+      const duplicateKey = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `${duplicateKey} already exists` });
+    }
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+module.exports = { addAgent, deleteAgent, getAllAgents, getAgentById, editAgent };

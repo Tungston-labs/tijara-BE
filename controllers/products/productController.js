@@ -90,24 +90,28 @@ const addProduct = async (req, res, next) => {
 
 const getAllProducts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search = "", category, status } = req.query;
+    const { page = 1, limit = 10, search = "", category, status, sellerName } = req.query;
     const { id, role } = req.user;
 
     const filter = {};
 
+    // Seller: only their own products
     if (role === "seller") {
       filter.addedBy = id;
       filter.addedByModel = "User";
     }
 
+    // Category filter
     if (category) {
       filter.itemCategory = category;
     }
 
+    // Product name search
     if (search) {
       filter.itemName = { $regex: search, $options: "i" };
     }
 
+    // Date-based status filter
     const currentDate = new Date();
     if (status === "unexpired") {
       filter.expiryDate = { $gt: currentDate };
@@ -115,12 +119,20 @@ const getAllProducts = async (req, res, next) => {
       filter.expiryDate = { $lte: currentDate };
     }
 
-    const total = await Product.countDocuments(filter);
-
-    const products = await Product.find(filter)
+    // Start with base query
+    let query = Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .populate("addedBy");
+
+    // If admin is filtering by seller name
+    if (role === "admin" && sellerName) {
+      query = query.where("addedBy.name", new RegExp(sellerName, "i")); // case-insensitive match
+    }
+
+    const products = await query.exec();
+    const total = await Product.countDocuments(filter); // Not exact if filtering by sellerName; for real count, refactor
 
     res.status(200).json({
       total,
@@ -133,6 +145,7 @@ const getAllProducts = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // View single product
 const getProductById = async (req, res, next) => {
