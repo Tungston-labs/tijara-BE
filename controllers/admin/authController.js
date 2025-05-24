@@ -2,10 +2,10 @@ const Admin = require("../../models/Admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
-const SubscriptionHistory=require("../../models/SubscriptionHistory")
+const SubscriptionHistory = require("../../models/SubscriptionHistory");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
-const SubscriptionPlan=require("../../models/SubscriptionPlan")
+const SubscriptionPlan = require("../../models/SubscriptionPlan");
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
@@ -156,8 +156,6 @@ const getUserCounts = async (req, res, next) => {
   }
 };
 
-
-
 //For restting the Password
 
 const checkResetToken = async (req, res, next) => {
@@ -233,7 +231,7 @@ const resetPassword = async (req, res, next) => {
 
     res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
-    next(error); 
+    next(error);
   }
 };
 
@@ -321,7 +319,6 @@ const addSellerByAdmin = async (req, res, next) => {
       });
     }
 
-
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
     const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
@@ -345,7 +342,6 @@ const addSellerByAdmin = async (req, res, next) => {
           "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
       });
     }
-
 
     const existingSeller = await User.findOne({ email });
     if (existingSeller) {
@@ -405,15 +401,15 @@ const updateUserStatus = async (req, res) => {
   res.status(200).json({ message: `${role} status updated to ${status}` });
 };
 
-
-
 const getAllUsers = async (req, res, next) => {
   try {
     const { role, search = "", page = 1, limit = 10 } = req.query;
 
     // Ensure valid role
     if (!["seller", "buyer"].includes(role)) {
-      return res.status(400).json({ message: "Role must be 'seller' or 'buyer'" });
+      return res
+        .status(400)
+        .json({ message: "Role must be 'seller' or 'buyer'" });
     }
 
     // Only return users with status: "approved"
@@ -438,7 +434,9 @@ const getAllUsers = async (req, res, next) => {
     // Attach latest subscription for each user (if exists)
     const usersWithSubscriptions = await Promise.all(
       users.map(async (user) => {
-        const latestSubscription = await SubscriptionHistory.findOne({ user: user._id })
+        const latestSubscription = await SubscriptionHistory.findOne({
+          user: user._id,
+        })
           .sort({ startDate: -1 })
           .populate("plan")
           .lean();
@@ -461,14 +459,12 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-
 //Get single user
 
 const getUserById = async (req, res, next) => {
   try {
     const { role, id } = req.params;
 
-   
     if (!["seller", "buyer"].includes(role)) {
       return res
         .status(400)
@@ -515,12 +511,12 @@ const getPendingUsersByRole = async (req, res) => {
     return res.status(400).json({ message: "Invalid role provided" });
   }
 
-  const searchRegex = new RegExp(search, "i"); 
+  const searchRegex = new RegExp(search, "i");
 
   try {
     const query = {
-      role, 
-      status: "pending", 
+      role,
+      status: "pending",
       $or: [{ name: searchRegex }, { email: searchRegex }],
     };
 
@@ -553,13 +549,17 @@ const createSubscriptionPlan = async (req, res, next) => {
     }
 
     if (!["monthly", "annually"].includes(duration)) {
-      return res.status(400).json({ message: "Invalid duration. Must be 'monthly' or 'annually'" });
+      return res
+        .status(400)
+        .json({ message: "Invalid duration. Must be 'monthly' or 'annually'" });
     }
 
     // Check for duplicate plan name
     const existing = await SubscriptionPlan.findOne({ name });
     if (existing) {
-      return res.status(409).json({ message: "Plan with this name already exists" });
+      return res
+        .status(409)
+        .json({ message: "Plan with this name already exists" });
     }
 
     const newPlan = new SubscriptionPlan({
@@ -571,7 +571,9 @@ const createSubscriptionPlan = async (req, res, next) => {
 
     await newPlan.save();
 
-    res.status(201).json({ message: "Subscription plan created", plan: newPlan });
+    res
+      .status(201)
+      .json({ message: "Subscription plan created", plan: newPlan });
   } catch (error) {
     next(error);
   }
@@ -581,7 +583,9 @@ const createSubscriptionPlan = async (req, res, next) => {
 const updatePlan = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updated = await SubscriptionPlan.findByIdAndUpdate(id, req.body, { new: true });
+    const updated = await SubscriptionPlan.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
 
     if (!updated) return res.status(404).json({ message: "Plan not found" });
 
@@ -604,36 +608,42 @@ const deletePlan = async (req, res, next) => {
     next(err);
   }
 };
-
 const editUserByAdmin = async (req, res) => {
-  const { id } = req.params;
+  const { role, id } = req.params;   // Get role and id from URL params
   const updates = req.body;
   const files = req.files;
+
+  console.log("updates body:", updates);
 
   try {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Update text fields
+    // Optionally check if the role param matches user's role (extra validation)
+    if (user.role !== role) {
+      return res.status(400).json({ message: "Role does not match the user" });
+    }
+
     const commonFields = ["name", "email", "phone", "status"];
     const sellerFields = ["companyName", "managerName", "tradeLicenseNumber"];
 
+    // Update common fields
     commonFields.forEach((field) => {
-      if (updates[field] !== undefined) user[field] = updates[field];
+      if (updates && updates[field] !== undefined) user[field] = updates[field];
     });
 
     if (user.role === "seller") {
       sellerFields.forEach((field) => {
-        if (updates[field] !== undefined) user[field] = updates[field];
+        if (updates && updates[field] !== undefined) user[field] = updates[field];
       });
 
       if (files?.tradeLicenseCopy?.[0]) {
-        user.tradeLicenseCopy = `/uploads/${files.tradeLicenseCopy[0].filename}`;
+        user.tradeLicenseCopy = `/uploads/licenses/${files.tradeLicenseCopy[0].filename}`;
       }
     }
 
     if (files?.profileImage?.[0]) {
-      user.profileImage = `/uploads/${files.profileImage[0].filename}`;
+      user.profileImage = `/uploads/users/${user.role}s/${files.profileImage[0].filename}`;
     }
 
     const updatedUser = await user.save();
@@ -643,8 +653,6 @@ const editUserByAdmin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 
 
@@ -664,7 +672,5 @@ module.exports = {
   createSubscriptionPlan,
   updatePlan,
   deletePlan,
-  editUserByAdmin
-  
-
+  editUserByAdmin,
 };
