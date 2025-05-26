@@ -5,6 +5,7 @@ const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../control
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
+const compressUploadedImages = require("../../middleware/imageCompressor");
 
 router.post('/signup',signUp);
 router.post('/adminlogin',Login);
@@ -24,8 +25,8 @@ router.get("/get-count", jwtAuthentication,verifyAdmin, getUserCounts);
 router.post("/addseller",jwtAuthentication, verifyAdmin, upload.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "tradeLicenseCopy", maxCount: 1 },
-  ]), addSellerByAdmin);
-router.post("/addbuyer",jwtAuthentication, upload.single("profileImage"), verifyAdmin, addBuyerByAdmin);
+  ]), compressUploadedImages,addSellerByAdmin);
+router.post("/addbuyer",jwtAuthentication, upload.single("profileImage"),compressUploadedImages, verifyAdmin, addBuyerByAdmin);
 router.post("/verify-user", jwtAuthentication, verifyAdmin, updateUserStatus) ;
 router.get("/get-all-users", jwtAuthentication,verifyAdmin, getAllUsers);
 router.get("/get-user/:role/:id", jwtAuthentication, verifyAdmin, getUserById);
@@ -36,7 +37,7 @@ router.delete("/delete-user/:role/:id", jwtAuthentication, verifyAdmin, deleteUs
 router.put("/edit-user/:id", upload.fields([
     { name: "tradeLicenseCopy", maxCount: 1 },
     { name: "profileImage", maxCount: 1 },
-  ]), jwtAuthentication, verifyAdmin, editUserByAdmin);
+  ]),compressUploadedImages, jwtAuthentication, verifyAdmin, editUserByAdmin);
 router.put(
   "/edit-user/:role/:id",
   jwtAuthentication,
@@ -44,6 +45,6 @@ router.put(
   upload.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "tradeLicenseCopy", maxCount: 1 },
-  ]),
+  ]),compressUploadedImages,
   editUserByAdmin
 );module.exports=router;

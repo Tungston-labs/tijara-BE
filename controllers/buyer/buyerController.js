@@ -6,20 +6,40 @@ const validator = require("validator");
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+
 const registerBuyer = async (req, res, next) => {
   try {
     const { name, phone, email, password } = req.body;
 
-    console.log("File received:", req.file);
-    console.log("Request body:", req.body);
+    let location;
+    try {
+      location = JSON.parse(req.body.location);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ message: "Invalid location format. Must be JSON." });
+    }
 
-    // Extract profileImage path from req.file
-    const profileImage = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/users/buyes/${req.file.filename}`
+    const profileImage = req.files?.profileImage?.[0]?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${
+          req.files.profileImage[0].filename
+        }`
       : null;
 
-    if (!name || !phone || !email || !password || !profileImage) {
-      return res.status(400).json({ message: "All fields are required" });
+    // Basic validation
+    if (
+      !name ||
+      !phone ||
+      !email ||
+      !password ||
+      !location ||
+      !location.latitude ||
+      !location.longitude ||
+      !profileImage
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All fields are required including location" });
     }
 
     const existingBuyer = await User.findOne({ email });
@@ -36,21 +56,24 @@ const registerBuyer = async (req, res, next) => {
       password: hashedPassword,
       profileImage,
       role: "buyer",
+      location: {
+        type: "Point",
+        coordinates: [location.longitude, location.latitude],
+      },
     });
 
-await newBuyer.save();
+    await newBuyer.save();
 
-// Exclude the password in the response
-const { password: _, ...buyerData } = newBuyer.toObject();
-res.status(201).json({
-  message: "Buyer registered successfully",
-  buyer: buyerData,
-});
+    const { password: _, ...buyerData } = newBuyer.toObject();
+
+    res.status(201).json({
+      message: "Buyer registered successfully",
+      buyer: buyerData,
+    });
   } catch (error) {
     next(error);
   }
 };
-
 
 const loginBuyer = async (req, res, next) => {
   try {
@@ -87,7 +110,7 @@ const loginBuyer = async (req, res, next) => {
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
-
+  
     res.cookie("jwt", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -148,7 +171,9 @@ const resetPassword = async (req, res, next) => {
 
     const resetToken = req.cookies?.resetToken;
     if (!resetToken) {
-      return res.status(401).json({ message: "Unauthorized or token is required" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized or token is required" });
     }
 
     const passwordRegex =
@@ -179,7 +204,6 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-
 const editBuyer = async (req, res, next) => {
   try {
     const buyerId = req.user.id; // ID from JWT
@@ -188,14 +212,13 @@ const editBuyer = async (req, res, next) => {
     if (req.user.role !== "buyer") {
       return res.status(403).json({ message: "Unauthorized " });
     }
-  
+
     const updatedBuyer = await User.findByIdAndUpdate(buyerId, updates, {
       new: true,
     });
     if (req.file) {
       updates.profileImage = `/uploads/buyers/${req.file.filename}`;
     }
-
 
     if (!updatedBuyer) {
       return res.status(404).json({ message: "Buyer not found" });

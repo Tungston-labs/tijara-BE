@@ -9,9 +9,7 @@ const { seller } = require("../../utils/userModals");
 const usernameRegex = /^[a-zA-Z0-9 ]+$/; // Example regex, modify as needed
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
-
 const registerSeller = async (req, res, next) => {
-  // console.log("FILES RECEIVED:", req.files);
   try {
     const cleanBody = { ...req.body };
 
@@ -23,9 +21,24 @@ const registerSeller = async (req, res, next) => {
       companyName,
       tradeLicenseNumber,
       managerName,
+      location: locationRaw,
     } = cleanBody;
 
-    // Check required fields
+    // Parse location JSON
+    let location;
+    try {
+      location = JSON.parse(locationRaw);
+      if (
+        !location ||
+        typeof location.latitude !== "number" ||
+        typeof location.longitude !== "number"
+      ) {
+        throw new Error();
+      }
+    } catch {
+      return res.status(400).json({ message: "Invalid or missing location" });
+    }
+
     if (
       !name ||
       !email ||
@@ -40,18 +53,15 @@ const registerSeller = async (req, res, next) => {
     ) {
       return res.status(400).json({
         message:
-          "All fields including trade license copy and profile image are required",
+          "All fields including trade license copy, profile image, and location are required",
       });
     }
 
-    // Base URL for image paths
     const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const tradeLicensePath = `${baseUrl}/uploads/compressed/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/compressed/users/sellers/${req.files.profileImage[0].filename}`;
 
-    // Build image paths
-    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
-    
-    // Input validations
+    // Validations
     if (!usernameRegex.test(name)) {
       return res.status(400).json({ message: "Invalid name format" });
     }
@@ -71,16 +81,13 @@ const registerSeller = async (req, res, next) => {
       });
     }
 
-    // Check for duplicate email
     const existingSeller = await User.findOne({ email });
     if (existingSeller) {
       return res.status(400).json({ message: "Email already registered" });
     }
-   
-    // Hash password
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save new seller
     const newSeller = new User({
       name,
       email,
@@ -91,19 +98,26 @@ const registerSeller = async (req, res, next) => {
       managerName,
       tradeLicenseCopy: tradeLicensePath,
       profileImage: profileImagePath,
-      role: "seller"
+      role: "seller",
+      location: {
+        type: "Point",
+        coordinates: [location.longitude, location.latitude],
+      },
     });
 
     await newSeller.save();
-  const { password: _, ...sellerData } = newSeller.toObject();
+    const { password: _, ...sellerData } = newSeller.toObject();
 
-    res.status(201).json({ message: "Seller registered successfully", seller:sellerData })
-   
+    res.status(201).json({
+      message: "Seller registered successfully",
+      seller: sellerData,
+    });
   } catch (error) {
     console.error("Registration error:", error);
     next(error);
   }
 };
+
 
 // Login Seller
 const loginSeller = async (req, res, next) => {
