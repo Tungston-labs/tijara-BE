@@ -81,13 +81,20 @@ const getSubscriptionHistory = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const history = await UserSubscription.find({ user: userId }).populate("plan").sort({ createdAt: -1 });
+    const history = await UserSubscription.find({ user: userId })
+      .populate("plan")
+      .populate({
+        path: "user",
+        select: "role name email phone companyName tradeLicenseNumber"
+      })
+      .sort({ createdAt: -1 });
 
     res.status(200).json(history);
   } catch (error) {
     next(error);
   }
 };
+
 
 // Get all available plans
 const getAllPlans = async (req, res, next) => {
@@ -114,6 +121,29 @@ const getSinglePlan = async (req, res, next) => {
     next(error);
   }
 };
+const getSubscriptionHistoryByUserId = async (req, res, next) => {
+  try {
+    // Ensure the current user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { userId } = req.params;
+
+    const history = await UserSubscription.find({ user: userId })
+      .populate({
+        path: 'user',
+        select: 'name email phone role companyName tradeLicenseNumber',
+      })
+      .populate('plan')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(history);
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 module.exports = {
   subscribeToPlan,
@@ -122,4 +152,5 @@ module.exports = {
   getSubscriptionHistory,
   getAllPlans,
   getSinglePlan,
+  getSubscriptionHistoryByUserId,
 };

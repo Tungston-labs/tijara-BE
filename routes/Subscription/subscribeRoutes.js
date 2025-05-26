@@ -10,6 +10,7 @@ const {
   getSubscriptionHistory,
   getAllPlans,
   getSinglePlan,
+  getSubscriptionHistoryByUserId,
 } = require("../../controllers/Subscription/subscriptionController");
 const {  updatePlan, deletePlan, createSubscriptionPlan } = require('../../controllers/admin/authController');
 
@@ -23,7 +24,8 @@ const verifyAdmin=(req,res,next)=>{
 router.post("/subscribe", jwtAuthentication, subscribeToPlan);
 router.post("/cancel", jwtAuthentication, cancelSubscription);
 router.get("/current", jwtAuthentication, getCurrentSubscription);
-router.get("/history", jwtAuthentication, getSubscriptionHistory);
+router.get("/history", jwtAuthentication,  getSubscriptionHistory);
+router.get("/history/:userId", jwtAuthentication, verifyAdmin, getSubscriptionHistoryByUserId);
 
 
 router.post("/addplan",jwtAuthentication,verifyAdmin, createSubscriptionPlan);
