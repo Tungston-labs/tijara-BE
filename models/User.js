@@ -60,15 +60,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-subscription: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Subscription",
-},
-fcmToken: {
-  type: String,
-  default: null,
-},
- location: {
+    subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription",
+    },
+    assignedAgent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Agent",
+      default: null,
+    },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
+    location: {
       type: {
         type: String,
         enum: ["Point"],
@@ -79,8 +84,6 @@ fcmToken: {
         default: [0, 0],
       },
     },
-
-
   },
   { timestamps: true }
 );

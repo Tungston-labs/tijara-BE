@@ -405,17 +405,17 @@ const getAllUsers = async (req, res, next) => {
   try {
     const { role, search = "", page = 1, limit = 10 } = req.query;
 
-    // Ensure valid role
+    // Validate role
     if (!["seller", "buyer"].includes(role)) {
       return res
         .status(400)
         .json({ message: "Role must be 'seller' or 'buyer'" });
     }
 
-    // Only return users with status: "approved"
+    // Build query with optional search
     const query = {
       role,
-      status: "approved", // <-- Always filter for approved users
+      status: "approved",
       $or: [
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
@@ -424,21 +424,23 @@ const getAllUsers = async (req, res, next) => {
 
     const skip = Math.max((parseInt(page) - 1) * parseInt(limit), 0);
 
+    // Count and get paginated users
     const total = await User.countDocuments(query);
     const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
+      .populate("assignedAgent", "name phone email")
       .lean();
 
-    // Attach latest subscription for each user (if exists)
+    // Attach the latest subscription to each user
     const usersWithSubscriptions = await Promise.all(
       users.map(async (user) => {
         const latestSubscription = await SubscriptionHistory.findOne({
           user: user._id,
         })
           .sort({ startDate: -1 })
-          .populate("plan")
+          .populate("plan", "name duration price description")
           .lean();
 
         return {
@@ -455,9 +457,11 @@ const getAllUsers = async (req, res, next) => {
       totalPages: Math.ceil(total / parseInt(limit)),
     });
   } catch (error) {
+    console.error("Error in getAllUsers:", error);
     next(error);
   }
 };
+
 
 //Get single user
 
@@ -504,6 +508,9 @@ const deleteUser = async (req, res) => {
 
   res.status(200).json({ message: `${role} deleted successfully` });
 };
+
+
+
 const getPendingUsersByRole = async (req, res) => {
   const { role, search = "", page = 1, limit = 10 } = req.query;
 

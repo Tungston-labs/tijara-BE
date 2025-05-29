@@ -3,7 +3,12 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
 
-const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+
+
+
+const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^[0-9]{10}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
 
@@ -15,38 +20,62 @@ const registerBuyer = async (req, res, next) => {
     try {
       location = JSON.parse(req.body.location);
     } catch (e) {
-      return res
-        .status(400)
-        .json({ message: "Invalid location format. Must be JSON." });
+      return res.status(400).json({
+        message: "Invalid location format. Must be a valid JSON object.",
+      });
     }
 
     const profileImage = req.files?.profileImage?.[0]?.filename
-      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${
-          req.files.profileImage[0].filename
-        }`
+      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${req.files.profileImage[0].filename}`
       : null;
 
-    // Basic validation
-    if (
-      !name ||
-      !phone ||
-      !email ||
-      !password ||
-      !location ||
-      !location.latitude ||
-      !location.longitude ||
-      !profileImage
-    ) {
+    // Check for empty fields
+    if (!name || !phone || !email || !password || !location || !profileImage) {
+      return res.status(400).json({
+        message: "All fields are required including location and profile image",
+      });
+    }
+
+    // Field validations
+    if (!usernameRegex.test(name)) {
       return res
         .status(400)
-        .json({ message: "All fields are required including location" });
+        .json({ message: "Name must be 3-50 characters, letters/numbers only." });
     }
 
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        message: "Phone must be 10-15 digits, numbers only.",
+      });
+    }
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be 8-32 characters, include uppercase, lowercase, number, and special character.",
+      });
+    }
+
+    if (
+      typeof location.latitude !== "number" ||
+      typeof location.longitude !== "number"
+    ) {
+      return res.status(400).json({
+        message: "Location must include valid numeric latitude and longitude.",
+      });
+    }
+
+    // Check if buyer already exists
     const existingBuyer = await User.findOne({ email });
     if (existingBuyer) {
-      return res.status(400).json({ message: "Email already registered" });
+      return res.status(400).json({ message: "Email already registered." });
     }
 
+    // Hash password and save
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newBuyer = new User({
@@ -74,6 +103,7 @@ const registerBuyer = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const loginBuyer = async (req, res, next) => {
   try {

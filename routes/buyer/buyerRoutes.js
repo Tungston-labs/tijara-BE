@@ -20,7 +20,7 @@ router.post(
 router.post("/buyer-login",loginBuyer);
 router.post("/send-otp",sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
-router.post("/buyer-reset-password", resetPassword);
+router.post(" /buyer-reset-password", resetPassword);
 router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication, upload.fields("profileImage"),compressUploadedImages, editBuyer);
 

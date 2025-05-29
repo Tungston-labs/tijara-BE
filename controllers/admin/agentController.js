@@ -1,5 +1,6 @@
 // controllers/admin/agentController.js
 const Agent = require("../../models/Agent");
+const User = require("../../models/User");
 
 const validator = require("validator");
 
@@ -122,6 +123,36 @@ const editAgent = async (req, res) => {
   }
 };
 
+const assignAgentToUser = async (req, res) => {
+  try {
+    const { userId, agentId } = req.body;
 
+    // Validate user and agent exist
+    const user = await User.findById(userId);
+    const agent = await Agent.findById(agentId);
 
-module.exports = { addAgent, deleteAgent, getAllAgents, getAgentById, editAgent };
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Cannot assign agent to admin' });
+    }
+
+    user.assignedAgent = agent._id;
+    await user.save();
+
+    res.status(200).json({
+      message: `Agent assigned to ${user.role} successfully`,
+      data: {
+        userId: user._id,
+        role: user.role,
+        assignedAgent: agent.name, // or agent._id
+      },
+    });
+  } catch (err) {
+    console.error('Error assigning agent:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { addAgent, deleteAgent, getAllAgents, getAgentById, editAgent ,assignAgentToUser};
