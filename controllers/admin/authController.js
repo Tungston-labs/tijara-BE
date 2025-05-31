@@ -246,7 +246,7 @@ const addBuyerByAdmin = async (req, res, next) => {
 
     // Extract profileImage path from req.file
     const profileImage = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
+      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${
           req.file.filename
         }`
       : null;
@@ -320,8 +320,8 @@ const addSellerByAdmin = async (req, res, next) => {
     }
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
+    const tradeLicensePath = `${baseUrl}/uploads/compressed/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/compressed/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Input validations
     if (!usernameRegex.test(name)) {
