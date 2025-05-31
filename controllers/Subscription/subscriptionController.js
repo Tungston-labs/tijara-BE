@@ -67,7 +67,7 @@ const getCurrentSubscription = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const current = await UserSubscription.findOne({ user: userId, isActive: true }).populate("plan");
+    const current = await UserSubscription.findOne({ user: userId,  status: "active" }).populate("plan");
     if (!current) return res.status(404).json({ message: "No active subscription found" });
 
     res.status(200).json(current);

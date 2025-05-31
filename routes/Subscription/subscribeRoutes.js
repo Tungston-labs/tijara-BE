@@ -31,7 +31,7 @@ router.get("/history/:userId", jwtAuthentication, verifyAdmin, getSubscriptionHi
 router.post("/addplan",jwtAuthentication,verifyAdmin, createSubscriptionPlan);
 router.put("/updateplan/:id",jwtAuthentication,verifyAdmin, updatePlan);
 router.post("/deleteplan/:id",jwtAuthentication,verifyAdmin, deletePlan);
-router.post("/getallplans", jwtAuthentication,getAllPlans);
-router.post("/getsingleplan/:id", jwtAuthentication ,getSinglePlan);
+router.get("/getallplans", jwtAuthentication,getAllPlans);
+router.get("/getsingleplan/:id", jwtAuthentication ,getSinglePlan);
 
 module.exports = router;
