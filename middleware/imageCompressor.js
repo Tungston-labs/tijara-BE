@@ -18,7 +18,7 @@ const compressUploadedImages = async (req, res, next) => {
 
       const inputPath = file.path;
       const ext = path.extname(inputPath);
-      const compressedDir = path.dirname(inputPath).replace("uploads", "uploads/");
+      const compressedDir = path.dirname(inputPath).replace("uploads", "uploads/compressed/compressed");
       const outputFilename = `${Date.now()}-${file.filename}`;
       const outputPath = path.join(compressedDir, outputFilename);
 
