@@ -339,10 +339,7 @@ const addSellerByAdmin = async (req, res, next) => {
     const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Input validations
- if (!name || !phone || !email || !password || !profileImage) {
-  return res.status(400).json({ message: "All fields are required" });
-}
-
+ 
 if (!validateName(name)) {
   return res.status(400).json({ message: "Invalid name format" });
 }
