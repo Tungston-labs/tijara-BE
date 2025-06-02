@@ -6,7 +6,7 @@ const SubscriptionHistory = require("../../models/SubscriptionHistory");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
 const SubscriptionPlan = require("../../models/SubscriptionPlan");
-const { validateName, validateEmail, validatePassword, validatePassword } = require("../../utils/validator");
+const { validateName, validateEmail, validatePassword, validatePhone } = require("../../utils/validator");
 
 const signUp = async (req, res, next) => {
   try {
