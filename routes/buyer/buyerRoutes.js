@@ -23,6 +23,6 @@ router.post("/verify-otp", verifyOtpForPasswordReset);
 router.post(" /buyer-reset-password", resetPassword);
 router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication,   upload.fields([{ name: "profileImage", maxCount: 1 }]),
-,compressUploadedImages, editBuyer);
+compressUploadedImages, editBuyer);
 
 module.exports = router;
