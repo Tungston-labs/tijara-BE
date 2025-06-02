@@ -6,11 +6,7 @@ const SubscriptionHistory = require("../../models/SubscriptionHistory");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
 const SubscriptionPlan = require("../../models/SubscriptionPlan");
-const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
-
-//Sign Up
+const { validateName, validateEmail, validatePassword, validatePassword } = require("../../utils/validator");
 
 const signUp = async (req, res, next) => {
   try {
@@ -255,6 +251,25 @@ const addBuyerByAdmin = async (req, res, next) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    if (!validateName(name)) {
+      return res.status(400).json({ message: "Invalid name format" });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ message: "Invalid email address" });
+    }
+
+    if (!validatePhone(phone)) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+      });
+    }
+
     const existingBuyer = await User.findOne({ email });
     if (existingBuyer) {
       return res.status(400).json({ message: "Email already registered" });
@@ -324,24 +339,29 @@ const addSellerByAdmin = async (req, res, next) => {
     const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Input validations
-    if (!usernameRegex.test(name)) {
-      return res.status(400).json({ message: "Invalid name format" });
-    }
+ if (!name || !phone || !email || !password || !profileImage) {
+  return res.status(400).json({ message: "All fields are required" });
+}
 
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ message: "Invalid email address" });
-    }
+if (!validateName(name)) {
+  return res.status(400).json({ message: "Invalid name format" });
+}
 
-    if (!validator.isMobilePhone(phone)) {
-      return res.status(400).json({ message: "Invalid phone number" });
-    }
+if (!validateEmail(email)) {
+  return res.status(400).json({ message: "Invalid email address" });
+}
 
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        message:
-          "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
-      });
-    }
+if (!validatePhone(phone)) {
+  return res.status(400).json({ message: "Invalid phone number" });
+}
+
+if (!validatePassword(password)) {
+  return res.status(400).json({
+    message:
+      "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+  });
+}
+
 
     const existingSeller = await User.findOne({ email });
     if (existingSeller) {
@@ -462,7 +482,6 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-
 //Get single user
 
 const getUserById = async (req, res, next) => {
@@ -508,8 +527,6 @@ const deleteUser = async (req, res) => {
 
   res.status(200).json({ message: `${role} deleted successfully` });
 };
-
-
 
 const getPendingUsersByRole = async (req, res) => {
   const { role, search = "", page = 1, limit = 10 } = req.query;
@@ -616,7 +633,7 @@ const deletePlan = async (req, res, next) => {
   }
 };
 const editUserByAdmin = async (req, res) => {
-  const { role, id } = req.params;   // Get role and id from URL params
+  const { role, id } = req.params; // Get role and id from URL params
   const updates = req.body;
   const files = req.files;
 
@@ -641,7 +658,8 @@ const editUserByAdmin = async (req, res) => {
 
     if (user.role === "seller") {
       sellerFields.forEach((field) => {
-        if (updates && updates[field] !== undefined) user[field] = updates[field];
+        if (updates && updates[field] !== undefined)
+          user[field] = updates[field];
       });
 
       if (files?.tradeLicenseCopy?.[0]) {
@@ -654,14 +672,14 @@ const editUserByAdmin = async (req, res) => {
     }
 
     const updatedUser = await user.save();
-    res.status(200).json({ message: "User updated successfully", user: updatedUser });
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Admin edit user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 module.exports = {
   signUp,
