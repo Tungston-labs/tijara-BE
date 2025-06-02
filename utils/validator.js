@@ -7,7 +7,10 @@ const passwordRegex =
 
 const validateName = (name) => usernameRegex.test(name);
 const validateEmail = (email) => validator.isEmail(email);
-const validatePhone = (phone) => validator.isMobilePhone(phone);
+const phoneRegex = /^\+?[0-9]{10,15}$/;
+function validatePhone(phone) {
+  return phoneRegex.test(phone);
+}
 const validatePassword = (password) => passwordRegex.test(password);
 
 module.exports = {
