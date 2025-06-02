@@ -246,7 +246,7 @@ const addBuyerByAdmin = async (req, res, next) => {
 
     // Extract profileImage path from req.file
     const profileImage = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
           req.file.filename
         }`
       : null;
