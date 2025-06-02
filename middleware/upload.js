@@ -9,14 +9,14 @@ const storage = multer.diskStorage({
     // Determine folder based on field name and URL or user role
     if (file.fieldname === "profileImage") {
       if (req.originalUrl.includes("buyer")) {
-        folder = "uploads/compressed/users/buyers"; // Clean structure
+        folder = "uploads/users/buyers"; // Clean structure
       } else if (req.originalUrl.includes("seller")) {
-        folder = "uploads/compressed/users/sellers";
+        folder = "uploads/users/sellers";
       }
     } else if (file.fieldname === "images") {
-      folder = "uploads/compressed/products";
+      folder = "uploads/products";
     } else if (file.fieldname === "tradeLicenseCopy") {
-      folder = "uploads/compressed/licenses";
+      folder = "uploads/licenses";
     } else if (req.uploadFolder) {
       folder = req.uploadFolder; // Optional route override
     }
