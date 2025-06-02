@@ -645,12 +645,12 @@ const editUserByAdmin = async (req, res) => {
       });
 
       if (files?.tradeLicenseCopy?.[0]) {
-        user.tradeLicenseCopy = `/uploads/licenses/${files.tradeLicenseCopy[0].filename}`;
+        user.tradeLicenseCopy = `${baseUrl}/uploads/licenses/${files.tradeLicenseCopy[0].filename}`;
       }
     }
 
     if (files?.profileImage?.[0]) {
-      user.profileImage = `/uploads/users/${user.role}s/${files.profileImage[0].filename}`;
+      user.profileImage = `${baseUrl}/uploads/users/${user.role}s/${files.profileImage[0].filename}`;
     }
 
     const updatedUser = await user.save();

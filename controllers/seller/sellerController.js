@@ -58,8 +58,8 @@ const registerSeller = async (req, res, next) => {
     }
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const tradeLicensePath = `${baseUrl}/uploads/compressed/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/compressed/users/sellers/${req.files.profileImage[0].filename}`;
+    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Validations
     if (!usernameRegex.test(name)) {
@@ -257,7 +257,7 @@ const editSeller = async (req, res, next) => {
 
     // Handle profile image upload
     if (req.file) {
-      updates.profileImage = `/uploads/sellers/${req.file.filename}`;
+      updates.profileImage = `${baseUrl}/uploads/sellers/${req.file.filename}`;
     }
 
     const updatedSeller = await User.findByIdAndUpdate(sellerId, updates, {

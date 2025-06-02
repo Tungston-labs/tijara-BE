@@ -26,7 +26,7 @@ const registerBuyer = async (req, res, next) => {
     }
 
     const profileImage = req.files?.profileImage?.[0]?.filename
-      ? `${req.protocol}://${req.get("host")}/uploads/compressed/users/buyers/${req.files.profileImage[0].filename}`
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${req.files.profileImage[0].filename}`
       : null;
 
     // Check for empty fields
@@ -247,7 +247,7 @@ const editBuyer = async (req, res, next) => {
       new: true,
     });
     if (req.file) {
-      updates.profileImage = `/uploads/buyers/${req.file.filename}`;
+      updates.profileImage = `${baseUrl}/uploads/buyers/${req.file.filename}`;
     }
 
     if (!updatedBuyer) {
