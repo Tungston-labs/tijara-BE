@@ -26,7 +26,7 @@ const addProduct = async (req, res, next) => {
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const imagePaths = req.files.map(
-      (file) => `${baseUrl}/uploads/products${file.filename}`
+      (file) => `${baseUrl}/uploads/products/${file.filename}`
     );
 
     const pricePerKg = {
