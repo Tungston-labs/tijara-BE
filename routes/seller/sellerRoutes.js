@@ -26,6 +26,7 @@ router.put("/edit/:id", jwtAuthentication, upload.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "tradeLicenseCopy", maxCount: 1 },
   ]), compressUploadedImages ,editSeller);
-router.get("/profile", getSellerProfile, jwtAuthentication);
+router.get("/profile", jwtAuthentication, getSellerProfile);
+
 
 module.exports=router;
