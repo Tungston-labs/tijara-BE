@@ -47,4 +47,4 @@ const verifyOtpController = async (req, res) => {
 
   res.status(200).json({ token, user });
 };
-module.export={sendOtpController,verifyOtpController}
+module.exports={sendOtpController,verifyOtpController}
