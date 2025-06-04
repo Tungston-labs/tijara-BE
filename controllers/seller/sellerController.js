@@ -279,7 +279,7 @@ const editSeller = async (req, res, next) => {
 const getSellerProfile = async (req, res) => {
   const seller = await User.findById(req.user.id).select("-password");
   if (!seller || seller.role !== "seller") {
-    return res.status(404).json({ message: "Buyer not found" });
+    return res.status(404).json({ message: "Seller not found" });
   }
   res.status(200).json({ buyer });
 };
