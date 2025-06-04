@@ -1,5 +1,5 @@
 const User = require("../../models/User");
-const { sendOTP,verifyOTP } = require("../services/twilio");
+const { sendOTP,verifyOTP } = require("../../services/twilio");
 
 const { isValidNumber, parsePhoneNumber } = require('libphonenumber-js');
 
