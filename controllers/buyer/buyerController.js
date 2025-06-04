@@ -261,6 +261,14 @@ const editBuyer = async (req, res, next) => {
     next(error);
   }
 };
+// route: GET /api/buyer/profile
+const getBuyerProfile = async (req, res) => {
+  const buyer = await User.findById(req.user.id).select("-password");
+  if (!buyer || buyer.role !== "buyer") {
+    return res.status(404).json({ message: "Buyer not found" });
+  }
+  res.status(200).json({ buyer });
+};
 
 module.exports = {
   registerBuyer,
@@ -268,4 +276,5 @@ module.exports = {
   checkResetToken,
   resetPassword,
   editBuyer,
+  getBuyerProfile
 };

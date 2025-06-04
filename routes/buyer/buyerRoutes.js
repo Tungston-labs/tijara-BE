@@ -1,5 +1,5 @@
 const express= require("express");
-const { registerBuyer, loginBuyer, resetPassword, editBuyer } = require("../../controllers/buyer/buyerController");
+const { registerBuyer, loginBuyer, resetPassword, editBuyer, getBuyerProfile } = require("../../controllers/buyer/buyerController");
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const router= express.Router();
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
@@ -24,5 +24,6 @@ router.post(" /buyer-reset-password", resetPassword);
 router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication,   upload.fields([{ name: "profileImage", maxCount: 1 }]),
 compressUploadedImages, editBuyer);
+router.get("/profile", jwtAuthentication, getBuyerProfile);
 
 module.exports = router;

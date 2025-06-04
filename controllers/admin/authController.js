@@ -19,14 +19,16 @@ const signUp = async (req, res, next) => {
 
     console.log("Received body:", req.body);
 
-    if (!usernameRegex.test(username)) {
+    if (!validateName(username)) {
       res.status(400);
-      throw new Error("Username must be valid");
+      throw new Error("Username must be 3-50 characters long and contain only letters or numbers.");
     }
-    if (!passwordRegex.test(password)) {
+
+    if (!validatePassword(password)) {
       res.status(400);
-      throw new Error("Password must be valid");
+      throw new Error("Password must be 8-32 characters and include uppercase, lowercase, number, and special character.");
     }
+
     const existingUser = await Admin.findOne({ email });
     if (existingUser) {
       res.status(400);
@@ -67,9 +69,10 @@ const signUp = async (req, res, next) => {
       accessToken,
     });
   } catch (error) {
-    next(error); // Send error to centralized error handler
+    next(error);
   }
 };
+
 
 // ..For admin login
 
