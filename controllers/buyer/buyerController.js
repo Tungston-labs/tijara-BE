@@ -30,7 +30,7 @@ const registerBuyer = async (req, res, next) => {
       : null;
 
     // Check for empty fields
-    if (!name || !phone || !email || !password || !location || !profileImage) {
+    if (!name || !phone || !email || !password || !profileImage) {
       return res.status(400).json({
         message: "All fields are required including location and profile image",
       });
