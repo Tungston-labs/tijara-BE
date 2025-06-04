@@ -1,7 +1,7 @@
 const express=require("express");
 const router=express.Router();
 const upload=require("../../middleware/upload");
-const { registerSeller, loginSeller, resetPassword,checkResetToken, editSeller } = require("../../controllers/seller/sellerController");
+const { registerSeller, loginSeller, resetPassword,checkResetToken, editSeller, getSellerProfile } = require("../../controllers/seller/sellerController");
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController');
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
@@ -26,5 +26,6 @@ router.put("/edit/:id", jwtAuthentication, upload.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "tradeLicenseCopy", maxCount: 1 },
   ]), compressUploadedImages ,editSeller);
+router.post("/profile", getSellerProfile);
 
 module.exports=router;

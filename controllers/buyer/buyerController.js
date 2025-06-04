@@ -261,7 +261,7 @@ const editBuyer = async (req, res, next) => {
     next(error);
   }
 };
-// route: GET /api/buyer/profile
+
 const getBuyerProfile = async (req, res) => {
   const buyer = await User.findById(req.user.id).select("-password");
   if (!buyer || buyer.role !== "buyer") {
