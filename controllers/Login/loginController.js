@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../../models/User");
 const { sendOTP,verifyOTP } = require("../services/twilio");
 
 const { isValidNumber, parsePhoneNumber } = require('libphonenumber-js');
