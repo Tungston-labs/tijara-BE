@@ -281,7 +281,7 @@ const getSellerProfile = async (req, res) => {
   if (!seller || seller.role !== "seller") {
     return res.status(404).json({ message: "Seller not found" });
   }
-  res.status(200).json({ buyer });
+  res.status(200).json({ seller });
 };
 module.exports = {
   registerSeller,
