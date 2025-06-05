@@ -3,12 +3,12 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const { seller } = require("../../utils/userModals");
+const Location = require("../../models/Location");
 
-// Validation regex
-
-const usernameRegex = /^[a-zA-Z0-9 ]+$/; // Example regex, modify as needed
+const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
 const registerSeller = async (req, res, next) => {
   try {
     const cleanBody = { ...req.body };
@@ -24,14 +24,14 @@ const registerSeller = async (req, res, next) => {
       location: locationRaw,
     } = cleanBody;
 
-    // Parse location JSON
-    let location;
+    // 1. Parse and validate location JSON
+    let coords;
     try {
-      location = JSON.parse(locationRaw);
+      coords = JSON.parse(locationRaw);
       if (
-        !location ||
-        typeof location.latitude !== "number" ||
-        typeof location.longitude !== "number"
+        !coords ||
+        typeof coords.latitude !== "number" ||
+        typeof coords.longitude !== "number"
       ) {
         throw new Error();
       }
@@ -39,6 +39,7 @@ const registerSeller = async (req, res, next) => {
       return res.status(400).json({ message: "Invalid or missing location" });
     }
 
+    // 2. Check for required fields and files
     if (
       !name ||
       !email ||
@@ -47,9 +48,8 @@ const registerSeller = async (req, res, next) => {
       !companyName ||
       !tradeLicenseNumber ||
       !managerName ||
-      !req.files ||
-      !req.files.tradeLicenseCopy ||
-      !req.files.profileImage
+      !req.files?.tradeLicenseCopy ||
+      !req.files?.profileImage
     ) {
       return res.status(400).json({
         message:
@@ -57,11 +57,12 @@ const registerSeller = async (req, res, next) => {
       });
     }
 
+    // 3. Build image paths
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
     const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
-    // Validations
+    // 4. Validate individual fields
     if (!usernameRegex.test(name)) {
       return res.status(400).json({ message: "Invalid name format" });
     }
@@ -81,13 +82,33 @@ const registerSeller = async (req, res, next) => {
       });
     }
 
+    // 5. Check for duplicate email
     const existingSeller = await User.findOne({ email });
     if (existingSeller) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    // 6. Resolve nearest location from coordinates
+    const nearestLocation = await Location.findOne({
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [coords.longitude, coords.latitude],
+          },
+          $maxDistance: 100000, // within 100 km
+        },
+      },
+    });
+
+    if (!nearestLocation) {
+      return res.status(400).json({ message: "No nearby location found" });
+    }
+
+    // 7. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 8. Create new seller with resolved location ID
     const newSeller = new User({
       name,
       email,
@@ -99,13 +120,12 @@ const registerSeller = async (req, res, next) => {
       tradeLicenseCopy: tradeLicensePath,
       profileImage: profileImagePath,
       role: "seller",
-      location: {
-        type: "Point",
-        coordinates: [location.longitude, location.latitude],
-      },
+      location: nearestLocation._id,
     });
 
     await newSeller.save();
+
+    // 9. Return response (exclude password)
     const { password: _, ...sellerData } = newSeller.toObject();
 
     res.status(201).json({
@@ -117,6 +137,7 @@ const registerSeller = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 // Login Seller

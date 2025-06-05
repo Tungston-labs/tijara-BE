@@ -2,8 +2,7 @@ const User = require("../../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
-
-
+const Location = require("../../models/Location");
 
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
@@ -14,23 +13,14 @@ const passwordRegex =
 
 const registerBuyer = async (req, res, next) => {
   try {
-    const { name, phone, email, password } = req.body;
-
-    let location;
-    try {
-      location = JSON.parse(req.body.location);
-    } catch (e) {
-      return res.status(400).json({
-        message: "Invalid location format. Must be a valid JSON object.",
-      });
-    }
+    const { name, phone, email, password, locationId, coords } = req.body;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
       ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${req.files.profileImage[0].filename}`
       : null;
 
-    // Check for empty fields
-    if (!name || !phone || !email || !password ) {
+    // Check required fields
+    if (!name || !phone || !email || !password || (!locationId && !coords)) {
       return res.status(400).json({
         message: "All fields are required including location and profile image",
       });
@@ -38,9 +28,10 @@ const registerBuyer = async (req, res, next) => {
 
     // Field validations
     if (!usernameRegex.test(name)) {
-      return res
-        .status(400)
-        .json({ message: "Name must be 3-50 characters, letters/numbers only." });
+      return res.status(400).json({
+        message:
+          "Name must be 3-50 characters, letters/numbers only.",
+      });
     }
 
     if (!emailRegex.test(email)) {
@@ -60,24 +51,54 @@ const registerBuyer = async (req, res, next) => {
       });
     }
 
-    if (
-      typeof location.latitude !== "number" ||
-      typeof location.longitude !== "number"
-    ) {
-      return res.status(400).json({
-        message: "Location must include valid numeric latitude and longitude.",
-      });
-    }
-
     // Check if buyer already exists
     const existingBuyer = await User.findOne({ email });
     if (existingBuyer) {
       return res.status(400).json({ message: "Email already registered." });
     }
 
-    // Hash password and save
+    // Location handling logic
+    let resolvedLocationId;
+
+    if (locationId) {
+      const location = await Location.findById(locationId);
+      if (!location) {
+        return res.status(400).json({ message: "Invalid location ID." });
+      }
+      resolvedLocationId = location._id;
+    } else if (coords) {
+      // Expecting coords to be an object like { latitude: 25.2, longitude: 55.3 }
+      const { latitude, longitude } = coords;
+
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Invalid coordinates." });
+      }
+
+      const nearest = await Location.findOne({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude],
+            },
+            $maxDistance: 100000, // 100km radius
+          },
+        },
+      });
+
+      if (!nearest) {
+        return res.status(400).json({
+          message: "No nearby location found for your coordinates.",
+        });
+      }
+
+      resolvedLocationId = nearest._id;
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create new user
     const newBuyer = new User({
       name,
       phone,
@@ -85,14 +106,12 @@ const registerBuyer = async (req, res, next) => {
       password: hashedPassword,
       profileImage,
       role: "buyer",
-      location: {
-        type: "Point",
-        coordinates: [location.longitude, location.latitude],
-      },
+      location: resolvedLocationId,
     });
 
     await newBuyer.save();
 
+    // Exclude password from response
     const { password: _, ...buyerData } = newBuyer.toObject();
 
     res.status(201).json({
@@ -103,6 +122,7 @@ const registerBuyer = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 const loginBuyer = async (req, res, next) => {
