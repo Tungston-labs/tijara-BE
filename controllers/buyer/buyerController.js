@@ -123,8 +123,6 @@ const registerBuyer = async (req, res, next) => {
   }
 };
 
-
-
 const loginBuyer = async (req, res, next) => {
   try {
     const { email, password } = req.body;

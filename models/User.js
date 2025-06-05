@@ -73,7 +73,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-  
+  location: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Location",
+  default: null,
+},
   },
   { timestamps: true }
 );
