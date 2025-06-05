@@ -8,7 +8,7 @@ const verifyAdmin = (req, res, next) => {
     }
     next();
   };
-router.post('/create-location',createLocation,jwtAuthentication,verifyAdmin);
-router.get('/get-location',getAllLocations, jwtAuthentication, verifyAdmin);
+router.post('/create-location', jwtAuthentication, verifyAdmin, createLocation);
+router.get('/get-location', jwtAuthentication, verifyAdmin, getAllLocations);
 
 module.exports = router;
