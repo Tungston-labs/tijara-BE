@@ -34,12 +34,18 @@ const createLocation = async (req, res, next) => {
 // Get all locations (optional)
 const getAllLocations = async (req, res, next) => {
   try {
-    const locations = await Location.find();
+    const search = req.query.search || "";
+    const query = {
+      name: { $regex: search, $options: "i" },
+    };
+
+    const locations = await Location.find(query);
     res.json(locations);
   } catch (error) {
     next(error);
   }
 };
+
 
 module.exports = {
   createLocation,
