@@ -9,6 +9,6 @@ const verifyAdmin = (req, res, next) => {
     next();
   };
 router.post('/create-location', jwtAuthentication, verifyAdmin, createLocation);
-router.get('/get-location', jwtAuthentication, verifyAdmin, getAllLocations);
+router.get('/get-location', getAllLocations);
 
 module.exports = router;
