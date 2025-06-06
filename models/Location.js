@@ -1,11 +1,7 @@
 const mongoose = require("mongoose");
 
 const locationSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+  
   country: {
     type: String,
     default: "UAE",

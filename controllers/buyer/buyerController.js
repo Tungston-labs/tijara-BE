@@ -4,101 +4,106 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 
+const axios = require("axios");
+const bcrypt = require("bcrypt");
+const User = require("../../models/User");
+const Location = require("../../models/Location");
+
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^[0-9]{10}$/;
-const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+
+const reverseGeocode = async (latitude, longitude) => {
+  const apiKey = process.env.OPENCAGE_API_KEY;
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
+
+  const response = await axios.get(url);
+  const locationName = response.data?.results?.[0]?.components?.city ||
+                       response.data?.results?.[0]?.components?.town ||
+                       response.data?.results?.[0]?.formatted ||
+                       "Unknown Location";
+  return locationName;
+};
 
 const registerBuyer = async (req, res, next) => {
   try {
     const { name, phone, email, password, locationId, coords } = req.body;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
-      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
-          req.files.profileImage[0].filename
-        }`
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${req.files.profileImage[0].filename}`
       : null;
 
-    // Check required fields
     if (!name || !phone || !email || !password || (!locationId && !coords)) {
       return res.status(400).json({
-        message: "All fields are required including location and profile image",
+        message: "All fields are required including location or coordinates and profile image",
       });
     }
 
-    // Field validations
     if (!usernameRegex.test(name)) {
-      return res.status(400).json({
-        message: "Name must be 3-50 characters, letters/numbers only.",
-      });
+      return res.status(400).json({ message: "Name must be 3-50 characters, letters/numbers only." });
     }
-
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format." });
     }
-
     if (!phoneRegex.test(phone)) {
-      return res.status(400).json({
-        message: "Phone must be 10-15 digits, numbers only.",
-      });
+      return res.status(400).json({ message: "Phone must be 10 digits, numbers only." });
     }
-
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        message:
-          "Password must be 8-32 characters, include uppercase, lowercase, number, and special character.",
-      });
+      return res.status(400).json({ message: "Password must include uppercase, lowercase, number, special char." });
     }
 
-    // Check if buyer already exists
     const existingBuyer = await User.findOne({ email });
     if (existingBuyer) {
       return res.status(400).json({ message: "Email already registered." });
     }
 
-    // Location handling logic
     let resolvedLocationId;
 
     if (locationId) {
       const location = await Location.findById(locationId);
-      if (!location) {
-        return res.status(400).json({ message: "Invalid location ID." });
-      }
+      if (!location) return res.status(400).json({ message: "Invalid location ID." });
       resolvedLocationId = location._id;
     } else if (coords) {
-      // Expecting coords to be an object like { latitude: 25.2, longitude: 55.3 }
       const { latitude, longitude } = coords;
 
       if (typeof latitude !== "number" || typeof longitude !== "number") {
         return res.status(400).json({ message: "Invalid coordinates." });
       }
 
+      // Check if any location nearby already exists
       const nearest = await Location.findOne({
-        coordinates: {
+        location: {
           $near: {
             $geometry: {
               type: "Point",
               coordinates: [longitude, latitude],
             },
-            $maxDistance: 100000,
+            $maxDistance: 50000, // 50km radius
           },
         },
       });
 
-      if (!nearest) {
-        return res.status(400).json({
-          message: "No nearby location found for your coordinates.",
+      if (nearest) {
+        resolvedLocationId = nearest._id;
+      } else {
+        // Create new location using reverse geocoding
+        const name = await reverseGeocode(latitude, longitude);
+        const newLocation = new Location({
+          country: "UAE",
+          location: {
+            type: "Point",
+            coordinates: [longitude, latitude],
+          },
+          name,
         });
+        await newLocation.save();
+        resolvedLocationId = newLocation._id;
       }
-
-      resolvedLocationId = nearest._id;
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
     const newBuyer = new User({
       name,
       phone,
@@ -111,13 +116,8 @@ const registerBuyer = async (req, res, next) => {
 
     await newBuyer.save();
 
-    // Exclude password from response
     const { password: _, ...buyerData } = newBuyer.toObject();
-
-    res.status(201).json({
-      message: "Buyer registered successfully",
-      buyer: buyerData,
-    });
+    res.status(201).json({ message: "Buyer registered successfully", buyer: buyerData });
   } catch (error) {
     next(error);
   }
