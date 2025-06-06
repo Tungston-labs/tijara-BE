@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 
-
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^[0-9]{10}$/;
@@ -16,7 +15,9 @@ const registerBuyer = async (req, res, next) => {
     const { name, phone, email, password, locationId, coords } = req.body;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
-      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${req.files.profileImage[0].filename}`
+      ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
+          req.files.profileImage[0].filename
+        }`
       : null;
 
     // Check required fields
@@ -29,8 +30,7 @@ const registerBuyer = async (req, res, next) => {
     // Field validations
     if (!usernameRegex.test(name)) {
       return res.status(400).json({
-        message:
-          "Name must be 3-50 characters, letters/numbers only.",
+        message: "Name must be 3-50 characters, letters/numbers only.",
       });
     }
 
@@ -70,18 +70,18 @@ const registerBuyer = async (req, res, next) => {
       // Expecting coords to be an object like { latitude: 25.2, longitude: 55.3 }
       const { latitude, longitude } = coords;
 
-      if (!latitude || !longitude) {
+      if (typeof latitude !== "number" || typeof longitude !== "number") {
         return res.status(400).json({ message: "Invalid coordinates." });
       }
 
       const nearest = await Location.findOne({
-        location: {
+        coordinates: {
           $near: {
             $geometry: {
               type: "Point",
               coordinates: [longitude, latitude],
             },
-            $maxDistance: 100000, // 100km radius
+            $maxDistance: 100000,
           },
         },
       });
@@ -158,7 +158,7 @@ const loginBuyer = async (req, res, next) => {
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
-  
+
     res.cookie("jwt", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -294,5 +294,5 @@ module.exports = {
   checkResetToken,
   resetPassword,
   editBuyer,
-  getBuyerProfile
+  getBuyerProfile,
 };

@@ -10,7 +10,7 @@ const locationSchema = new mongoose.Schema({
     type: String,
     default: "UAE",
   },
-  coordinates: {
+  location: {
     type: {
       type: String,
       enum: ["Point"],
@@ -23,7 +23,6 @@ const locationSchema = new mongoose.Schema({
   },
 });
 
-// 2dsphere index for geospatial queries
-locationSchema.index({ coordinates: "2dsphere" });
+locationSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Location", locationSchema);

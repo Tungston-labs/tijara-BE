@@ -90,13 +90,13 @@ const registerSeller = async (req, res, next) => {
 
     // 6. Resolve nearest location from coordinates
     const nearestLocation = await Location.findOne({
-      location: {
+      coordinates: {
         $near: {
           $geometry: {
             type: "Point",
-            coordinates: [coords.longitude, coords.latitude],
+            coordinates: [longitude, latitude],
           },
-          $maxDistance: 100000, // within 100 km
+          $maxDistance: 100000,
         },
       },
     });
@@ -137,8 +137,6 @@ const registerSeller = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 // Login Seller
 const loginSeller = async (req, res, next) => {
@@ -310,5 +308,5 @@ module.exports = {
   checkResetToken,
   resetPassword,
   editSeller,
-  getSellerProfile
+  getSellerProfile,
 };
