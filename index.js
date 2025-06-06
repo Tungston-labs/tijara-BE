@@ -29,7 +29,6 @@ app.use("/orders",require("./routes/order/orderRoutes"));
 app.use("/subscription" , require('./routes/Subscription/subscribeRoutes'));
 app.use("/items" , require('./routes/itemRoutes/itemRoutes'));
 app.use("/user" , require('./routes/login/loginRoutes'));
-app.use("/location" , require('./routes/location/locationRoutes'));
 
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);
