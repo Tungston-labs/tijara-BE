@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 const axios = require("axios");
-import reverseGeocode from "../../controllers/location/locationController";
+const reverseGeocode = require("../location/locationController")
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
