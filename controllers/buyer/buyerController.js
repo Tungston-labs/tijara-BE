@@ -4,12 +4,23 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 const reverseGeocode = require("../location/locationController")
+const axios = require("axios")
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^[0-9]{10}$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
 
+
+const reverseGeocode = async (latitude, longitude) => {
+  const apiKey = process.env.OPENCAGE_API_KEY;
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
+
+  const response = await axios.get(url);
+  const address = response.data?.results?.[0]?.formatted || "Unknown Location";
+  return address;
+};
+module.exports=reverseGeocode
 const registerBuyer = async (req, res, next) => {
   try {
     const { name, phone, email, password, locationId, coords } = req.body;
