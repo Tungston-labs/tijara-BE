@@ -20,7 +20,7 @@ const reverseGeocode = async (latitude, longitude) => {
   const address = response.data?.results?.[0]?.formatted || "Unknown Location";
   return address;
 };
-module.exports=reverseGeocode
+
 const registerBuyer = async (req, res, next) => {
   try {
     const { name, phone, email, password, locationId, coords } = req.body;
