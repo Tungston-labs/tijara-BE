@@ -4,24 +4,12 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 const axios = require("axios");
-
+import reverseGeocode from "../location/locationController";
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^[0-9]{10}$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
-
-const reverseGeocode = async (latitude, longitude) => {
-  const apiKey = process.env.OPENCAGE_API_KEY;
-  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
-
-  const response = await axios.get(url);
-  const locationName = response.data?.results?.[0]?.components?.city ||
-                       response.data?.results?.[0]?.components?.town ||
-                       response.data?.results?.[0]?.formatted ||
-                       "Unknown Location";
-  return locationName;
-};
 
 const registerBuyer = async (req, res, next) => {
   try {
@@ -62,7 +50,20 @@ const registerBuyer = async (req, res, next) => {
       if (!location) return res.status(400).json({ message: "Invalid location ID." });
       resolvedLocationId = location._id;
     } else if (coords) {
-      const { latitude, longitude } = coords;
+  let latitude, longitude;
+
+  if (typeof coords === 'string') {
+    try {
+      const parsed = JSON.parse(coords);
+      latitude = parseFloat(parsed.latitude);
+      longitude = parseFloat(parsed.longitude);
+    } catch (err) {
+      return res.status(400).json({ message: "Coordinates must be a valid JSON object." });
+    }
+  } else {
+    latitude = parseFloat(coords.latitude);
+    longitude = parseFloat(coords.longitude);
+  }
 
       if (typeof latitude !== "number" || typeof longitude !== "number") {
         return res.status(400).json({ message: "Invalid coordinates." });

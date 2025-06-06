@@ -7,3 +7,4 @@ const reverseGeocode = async (latitude, longitude) => {
   const address = response.data?.results?.[0]?.formatted || "Unknown Location";
   return address;
 };
+module.exports=reverseGeocode
