@@ -41,4 +41,4 @@ connectDb()
     }).catch((error)=>{
       console.log("failed to connect to Mongoose",error.message);
       process.exit(1)
-    })
+    });
