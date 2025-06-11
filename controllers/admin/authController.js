@@ -681,15 +681,30 @@ const editUserByAdmin = async (req, res) => {
   }
 };
 const checkUserStatus = async (req, res) => {
-  const { email } = req.body;
+  const { id } = req.body;
 
-  const user = await User.findOne({ email }).select("status");
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+  if (!id) {
+    return res.status(400).json({ message: "User ID is required" });
   }
 
-  res.json({ status: user.status });
+  try {
+    const user = await User.findById(id).select("_id email status");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      id: user._id,
+      email: user.email,
+      status: user.status,
+    });
+  } catch (err) {
+    console.error("Error fetching user status:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
+
 
 module.exports = {
   signUp,
