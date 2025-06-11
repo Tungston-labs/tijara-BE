@@ -26,9 +26,9 @@ app.use("/product",require('./routes/products/productRoutes'));
 app.use("/admin/agent",require("./routes/admin/agentRoutes"));
 app.use("/subscription",require("./routes/Subscription/subscribeRoutes"));
 app.use("/orders",require("./routes/order/orderRoutes"));
-app.use("/subscription" , require('./routes/Subscription/subscribeRoutes'));
 app.use("/items" , require('./routes/itemRoutes/itemRoutes'));
 app.use("/user" , require('./routes/login/loginRoutes'));
+app.use("/notifications" , require('./routes/notification/notificationRoutes'));
 
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);

@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const locationSchema = new mongoose.Schema({
-  
   country: {
     type: String,
     default: "UAE",
@@ -10,11 +9,18 @@ const locationSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ["Point"],
+      required: true,       
       default: "Point",
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
-      required: true,
+      type: [Number],
+      required: true,        
+      validate: {
+        validator: function (value) {
+          return value.length === 2;
+        },
+        message: "Coordinates must be [longitude, latitude]",
+      },
     },
   },
 });
