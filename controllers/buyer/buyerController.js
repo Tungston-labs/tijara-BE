@@ -177,7 +177,7 @@ const loginBuyer = async (req, res, next) => {
       message: "Login successful",
       name: buyer.name,
       accessToken,
-      buyer: buyer.role,
+      role: buyer.role,
     });
   } catch (error) {
     next(error);
