@@ -8,11 +8,18 @@ const Location = require("../../models/Location");
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+const reverseGeocode = async (latitude, longitude) => {
+  const apiKey = process.env.OPENCAGE_API_KEY;
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
+
+  const response = await axios.get(url);
+  const address = response.data?.results?.[0]?.formatted || "Unknown Location";
+  return address;
+};
+
 
 const registerSeller = async (req, res, next) => {
   try {
-    const cleanBody = { ...req.body };
-
     const {
       name,
       email,
@@ -21,25 +28,10 @@ const registerSeller = async (req, res, next) => {
       companyName,
       tradeLicenseNumber,
       managerName,
-      location: locationRaw,
-    } = cleanBody;
+      locationId,
+      coords,
+    } = req.body;
 
-    // 1. Parse and validate location JSON
-    let coords;
-    try {
-      coords = JSON.parse(locationRaw);
-      if (
-        !coords ||
-        typeof coords.latitude !== "number" ||
-        typeof coords.longitude !== "number"
-      ) {
-        throw new Error();
-      }
-    } catch {
-      return res.status(400).json({ message: "Invalid or missing location" });
-    }
-
-    // 2. Check for required fields and files
     if (
       !name ||
       !email ||
@@ -48,67 +40,85 @@ const registerSeller = async (req, res, next) => {
       !companyName ||
       !tradeLicenseNumber ||
       !managerName ||
+      (!locationId && !coords) ||
       !req.files?.tradeLicenseCopy ||
       !req.files?.profileImage
     ) {
       return res.status(400).json({
-        message:
-          "All fields including trade license copy, profile image, and location are required",
+        message: "All fields including trade license copy, profile image, and location are required",
       });
     }
 
-    // 3. Build image paths
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const tradeLicensePath = `${baseUrl}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
+    const tradeLicensePath = `${req.protocol}://${req.get("host")}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
+    const profileImagePath = `${req.protocol}://${req.get("host")}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
-    // 4. Validate individual fields
-    if (!usernameRegex.test(name)) {
-      return res.status(400).json({ message: "Invalid name format" });
-    }
-
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ message: "Invalid email address" });
-    }
-
-    if (!validator.isMobilePhone(phone)) {
-      return res.status(400).json({ message: "Invalid phone number" });
-    }
-
+    // Validate input formats
+    if (!usernameRegex.test(name)) return res.status(400).json({ message: "Invalid name format" });
+    if (!validator.isEmail(email)) return res.status(400).json({ message: "Invalid email" });
+    if (!validator.isMobilePhone(phone)) return res.status(400).json({ message: "Invalid phone" });
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        message:
-          "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+        message: "Password must contain uppercase, lowercase, number, special character, and be 8–32 characters",
       });
     }
 
-    // 5. Check for duplicate email
     const existingSeller = await User.findOne({ email });
-    if (existingSeller) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
+    if (existingSeller) return res.status(400).json({ message: "Email already registered" });
 
-    // 6. Resolve nearest location from coordinates
-    const nearestLocation = await Location.findOne({
-      coordinates: {
-        $near: {
-          $geometry: {
+    let resolvedLocationId;
+
+    if (locationId) {
+      const location = await Location.findById(locationId);
+      if (!location) return res.status(400).json({ message: "Invalid location ID" });
+      resolvedLocationId = location._id;
+    } else if (coords) {
+      let latitude, longitude;
+
+      if (typeof coords === "string") {
+        try {
+          const parsed = JSON.parse(coords);
+          latitude = parseFloat(parsed.latitude);
+          longitude = parseFloat(parsed.longitude);
+        } catch {
+          return res.status(400).json({ message: "Coordinates must be a valid JSON object" });
+        }
+      } else {
+        latitude = parseFloat(coords.latitude);
+        longitude = parseFloat(coords.longitude);
+      }
+
+      if (typeof latitude !== "number" || typeof longitude !== "number") {
+        return res.status(400).json({ message: "Invalid coordinates" });
+      }
+
+      const nearest = await Location.findOne({
+        location: {
+          $near: {
+            $geometry: { type: "Point", coordinates: [longitude, latitude] },
+            $maxDistance: 50000,
+          },
+        },
+      });
+
+      if (nearest) {
+        resolvedLocationId = nearest._id;
+      } else {
+        const name = await reverseGeocode(latitude, longitude);
+        const newLocation = new Location({
+          country: "UAE",
+          location: {
             type: "Point",
             coordinates: [longitude, latitude],
           },
-          $maxDistance: 100000,
-        },
-      },
-    });
-
-    if (!nearestLocation) {
-      return res.status(400).json({ message: "No nearby location found" });
+          name,
+        });
+        await newLocation.save();
+        resolvedLocationId = newLocation._id;
+      }
     }
 
-    // 7. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 8. Create new seller with resolved location ID
     const newSeller = new User({
       name,
       email,
@@ -120,14 +130,12 @@ const registerSeller = async (req, res, next) => {
       tradeLicenseCopy: tradeLicensePath,
       profileImage: profileImagePath,
       role: "seller",
-      location: nearestLocation._id,
+      location: resolvedLocationId,
     });
 
     await newSeller.save();
 
-    // 9. Return response (exclude password)
     const { password: _, ...sellerData } = newSeller.toObject();
-
     res.status(201).json({
       message: "Seller registered successfully",
       seller: sellerData,
@@ -137,6 +145,7 @@ const registerSeller = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Login Seller
 const loginSeller = async (req, res, next) => {
