@@ -3,7 +3,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
-const reverseGeocode = require("../location/locationController")
 const axios = require("axios")
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
