@@ -6,6 +6,7 @@ const { refresh } = require("../../controllers/refresh/globalRefreshController")
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController');
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const compressUploadedImages = require("../../middleware/imageCompressor");
+const { checkUserStatus } = require("../../controllers/admin/authController");
 
 
 router.post("/refresh",refresh);
@@ -27,6 +28,7 @@ router.put("/edit/:id", jwtAuthentication, upload.fields([
     { name: "tradeLicenseCopy", maxCount: 1 },
   ]), compressUploadedImages ,editSeller);
 router.get("/profile", jwtAuthentication, getSellerProfile);
+router.post("/check-status",checkUserStatus)
 
 
 module.exports=router;
