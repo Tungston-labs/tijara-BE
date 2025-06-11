@@ -26,5 +26,5 @@ router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication,   upload.fields([{ name: "profileImage", maxCount: 1 }]),
 compressUploadedImages, editBuyer);
 router.get("/profile", jwtAuthentication, getBuyerProfile);
-router.post("/check-status",checkUserStatus)
+
 module.exports = router;
