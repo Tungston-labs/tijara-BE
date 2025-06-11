@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const { seller } = require("../../utils/userModals");
 const Location = require("../../models/Location");
+const axios = require("axios")
 
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
