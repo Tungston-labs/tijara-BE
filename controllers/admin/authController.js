@@ -680,6 +680,16 @@ const editUserByAdmin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+const checkUserStatus = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email }).select("status");
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  res.json({ status: user.status });
+};
 
 module.exports = {
   signUp,
@@ -698,4 +708,5 @@ module.exports = {
   updatePlan,
   deletePlan,
   editUserByAdmin,
+  checkUserStatus,
 };

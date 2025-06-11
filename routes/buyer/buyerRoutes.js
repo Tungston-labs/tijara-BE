@@ -6,6 +6,7 @@ const { refresh } = require("../../controllers/refresh/globalRefreshController")
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
 const compressUploadedImages = require("../../middleware/imageCompressor");
+const { checkUserStatus } = require("../../controllers/admin/authController");
 router.post("/refresh",refresh);
 
 router.post(
@@ -25,5 +26,5 @@ router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication,   upload.fields([{ name: "profileImage", maxCount: 1 }]),
 compressUploadedImages, editBuyer);
 router.get("/profile", jwtAuthentication, getBuyerProfile);
-
+router.post("/check-status",checkUserStatus)
 module.exports = router;
