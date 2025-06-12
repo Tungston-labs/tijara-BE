@@ -41,9 +41,7 @@ const registerSeller = async (req, res, next) => {
       !companyName ||
       !tradeLicenseNumber ||
       !managerName ||
-      (!locationId && !coords) ||
-      !req.files?.tradeLicenseCopy ||
-      !req.files?.profileImage
+      (!locationId && !coords) 
     ) {
       return res.status(400).json({
         message: "All fields including trade license copy, profile image, and location are required",
