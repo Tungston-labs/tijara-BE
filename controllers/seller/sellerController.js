@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const { seller } = require("../../utils/userModals");
 const Location = require("../../models/Location");
-const axios = require("axios")
+const axios = require("axios");
 
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
@@ -17,7 +17,6 @@ const reverseGeocode = async (latitude, longitude) => {
   const address = response.data?.results?.[0]?.formatted || "Unknown Location";
   return address;
 };
-
 
 const registerSeller = async (req, res, next) => {
   try {
@@ -32,6 +31,19 @@ const registerSeller = async (req, res, next) => {
       locationId,
       coords,
     } = req.body;
+    // Trade License Copy path
+    const tradeLicensePath = req.files?.tradeLicenseCopy?.[0]?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/licenses/${
+          req.files.tradeLicenseCopy[0].filename
+        }`
+      : null;
+
+    // Profile Image path
+    const profileImagePath = req.files?.profileImage?.[0]?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/users/sellers/${
+          req.files.profileImage[0].filename
+        }`
+      : null;
 
     if (
       !name ||
@@ -41,34 +53,38 @@ const registerSeller = async (req, res, next) => {
       !companyName ||
       !tradeLicenseNumber ||
       !managerName ||
-      (!locationId && !coords) 
+      (!locationId && !coords)
     ) {
       return res.status(400).json({
-        message: "All fields including trade license copy, profile image, and location are required",
+        message:
+          "All fields including trade license copy, profile image, and location are required",
       });
     }
 
-    const tradeLicensePath = `${req.protocol}://${req.get("host")}/uploads/licenses/${req.files.tradeLicenseCopy[0].filename}`;
-    const profileImagePath = `${req.protocol}://${req.get("host")}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
-
     // Validate input formats
-    if (!usernameRegex.test(name)) return res.status(400).json({ message: "Invalid name format" });
-    if (!validator.isEmail(email)) return res.status(400).json({ message: "Invalid email" });
-    if (!validator.isMobilePhone(phone)) return res.status(400).json({ message: "Invalid phone" });
+    if (!usernameRegex.test(name))
+      return res.status(400).json({ message: "Invalid name format" });
+    if (!validator.isEmail(email))
+      return res.status(400).json({ message: "Invalid email" });
+    if (!validator.isMobilePhone(phone))
+      return res.status(400).json({ message: "Invalid phone" });
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        message: "Password must contain uppercase, lowercase, number, special character, and be 8–32 characters",
+        message:
+          "Password must contain uppercase, lowercase, number, special character, and be 8–32 characters",
       });
     }
 
     const existingSeller = await User.findOne({ email });
-    if (existingSeller) return res.status(400).json({ message: "Email already registered" });
+    if (existingSeller)
+      return res.status(400).json({ message: "Email already registered" });
 
     let resolvedLocationId;
 
     if (locationId) {
       const location = await Location.findById(locationId);
-      if (!location) return res.status(400).json({ message: "Invalid location ID" });
+      if (!location)
+        return res.status(400).json({ message: "Invalid location ID" });
       resolvedLocationId = location._id;
     } else if (coords) {
       let latitude, longitude;
@@ -79,7 +95,9 @@ const registerSeller = async (req, res, next) => {
           latitude = parseFloat(parsed.latitude);
           longitude = parseFloat(parsed.longitude);
         } catch {
-          return res.status(400).json({ message: "Coordinates must be a valid JSON object" });
+          return res
+            .status(400)
+            .json({ message: "Coordinates must be a valid JSON object" });
         }
       } else {
         latitude = parseFloat(coords.latitude);
@@ -144,7 +162,6 @@ const registerSeller = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // Login Seller
 const loginSeller = async (req, res, next) => {
