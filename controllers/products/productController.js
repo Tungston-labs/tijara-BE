@@ -151,7 +151,6 @@ const getAllProductsForBuyers = async (req, res, next) => {
 
     const filter = {
       expiryDate: { $gt: new Date() }, // Only unexpired
-      status: "approved", // Optional: if products need approval
     };
 
     if (category) {
