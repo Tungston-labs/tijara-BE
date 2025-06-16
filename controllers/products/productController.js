@@ -145,6 +145,42 @@ const getAllProducts = async (req, res, next) => {
     next(error);
   }
 };
+const getAllProductsForBuyers = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, search = "", category } = req.query;
+
+    const filter = {
+      expiryDate: { $gt: new Date() }, // Only unexpired
+      status: "approved", // Optional: if products need approval
+    };
+
+    if (category) {
+      filter.itemCategory = category;
+    }
+
+    if (search) {
+      filter.itemName = { $regex: search, $options: "i" };
+    }
+
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate("addedBy", "name");
+
+    const total = await Product.countDocuments(filter);
+
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      pageSize: products.length,
+      totalPages: Math.ceil(total / limit),
+      products,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 
 // View single product
@@ -311,4 +347,5 @@ module.exports = {
   updateProduct,
   getItemNames,
   getSubCategoriesByItemName,
+  getAllProductsForBuyers
 };

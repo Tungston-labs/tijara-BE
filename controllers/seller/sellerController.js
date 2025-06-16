@@ -94,7 +94,7 @@ const registerSeller = async (req, res, next) => {
           const parsed = JSON.parse(coords);
           latitude = parseFloat(parsed.latitude);
           longitude = parseFloat(parsed.longitude);
-        } catch {
+        } catch (err){
           return res
             .status(400)
             .json({ message: "Coordinates must be a valid JSON object" });
