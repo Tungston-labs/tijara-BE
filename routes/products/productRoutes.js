@@ -27,7 +27,7 @@ router.post(
   );
   router.get("/get-products", jwtAuthentication, allowAdminOrSeller, getAllProducts);
   router.get("/get-products-buyer",jwtAuthentication, getAllProductsForBuyers);
-  router.get("/get-productsbyid/:id", jwtAuthentication, allowAdminOrSeller, getProductById);
+  router.get("/get-productsbyid/:id", jwtAuthentication, getProductById);
   router.put("/update/:id", jwtAuthentication, upload.array("images", 5), allowAdminOrSeller, updateProduct); 
   router.delete("/delete-product/:id",jwtAuthentication, allowAdminOrSeller,deleteProduct)
   router.get("/item-names", jwtAuthentication, allowAdminOrSeller, getItemNames);

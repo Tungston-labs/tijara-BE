@@ -30,9 +30,15 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    expiryDate:{
-   type:Date,
-   required:true
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    expiryDate: {
+      type: Date,
+      required: true,
     },
     description: {
       type: String,
@@ -42,18 +48,13 @@ const productSchema = new mongoose.Schema(
       type: [String], // Paths or URLs
       validate: [arrayLimit, "Minimum 1 image required"], // Ensure validation works
     },
-addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-addedByModel: {
-  type: String,
-  enum: ["Admin", "User"], 
-  required: true,
-},
-
-    
-    
-
-
+    addedByModel: {
+      type: String,
+      enum: ["Admin", "User"],
+      required: true,
+    },
   },
   { timestamps: true }
 );
@@ -61,7 +62,5 @@ addedByModel: {
 function arrayLimit(val) {
   return val.length >= 1; // Enforce minimum 1 image
 }
-
-
 
 module.exports = mongoose.model("Product", productSchema);
