@@ -213,7 +213,7 @@ const loginSeller = async (req, res, next) => {
     res.status(200).json({
       message: "Login successful",
       _id: seller._id,
-      name: seller.sellerName, // Or seller.name, depending on your schema
+      name: seller.name, // Or seller.name, depending on your schema
       accessToken,
       role: seller.role,
     });
