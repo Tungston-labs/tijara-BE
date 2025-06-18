@@ -183,9 +183,14 @@ const loginSeller = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
     if (seller.status !== "approved") {
-      return res.status(403).json(`Your account is under ${seller.status}`);
+      return res.status(403).json({
+        message: `Your account is under ${seller.status}`,
+        status: seller.status,
+      });
     }
+
     const accessToken = jwt.sign(
       { id: seller._id, email: seller.email, role: seller.role },
       process.env.ACCESS_TOKEN_SECRET,
@@ -207,7 +212,8 @@ const loginSeller = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful",
-      sellerName: seller.sellerName,
+      _id: seller._id,
+      name: seller.sellerName, // Or seller.name, depending on your schema
       accessToken,
       role: seller.role,
     });
@@ -215,6 +221,7 @@ const loginSeller = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const checkResetToken = async (req, res, next) => {
   try {

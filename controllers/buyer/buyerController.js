@@ -169,6 +169,7 @@ const loginBuyer = async (req, res, next) => {
       res.status(401);
       throw new Error("Invalid email or password");
     }
+
     if (buyer.status !== "approved") {
       return res.status(403).json({
         message: "Account not approved",
@@ -197,6 +198,7 @@ const loginBuyer = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful",
+      _id: buyer._id,
       name: buyer.name,
       accessToken,
       role: buyer.role,
@@ -205,6 +207,7 @@ const loginBuyer = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const checkResetToken = async (req, res, next) => {
   try {

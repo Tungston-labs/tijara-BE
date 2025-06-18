@@ -108,7 +108,11 @@ const getAllProducts = async (req, res, next) => {
 
     // Product name search
     if (search) {
-      filter.itemName = { $regex: search, $options: "i" };
+      filter.itemName = { $regex: search, $options: "i",
+        headers:{
+          Authorization:`Bearer${token}`
+        }
+       };
     }
 
     // Date-based status filter
