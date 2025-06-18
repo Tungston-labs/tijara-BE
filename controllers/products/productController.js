@@ -93,29 +93,15 @@ const getAllProducts = async (req, res, next) => {
     const { page = 1, limit = 10, search = "", category, status, sellerName } = req.query;
     const { id, role } = req.user;
 
-    const filter = {};
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
 
-    // Seller: only their own products
-    if (role === "seller") {
-      filter.addedBy = id;
-      filter.addedByModel = "User";
-    }
+    const filter = {
+      ...(role === "seller" ? { addedBy: id, addedByModel: "User" } : {}),
+      ...(category ? { itemCategory: category } : {}),
+      ...(search ? { itemName: { $regex: search, $options: "i" } } : {}),
+    };
 
-    // Category filter
-    if (category) {
-      filter.itemCategory = category;
-    }
-
-    // Product name search
-    if (search) {
-      filter.itemName = { $regex: search, $options: "i",
-        headers:{
-          Authorization:`Bearer${token}`
-        }
-       };
-    }
-
-    // Date-based status filter
     const currentDate = new Date();
     if (status === "unexpired") {
       filter.expiryDate = { $gt: currentDate };
@@ -123,32 +109,36 @@ const getAllProducts = async (req, res, next) => {
       filter.expiryDate = { $lte: currentDate };
     }
 
-    // Start with base query
     let query = Product.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
       .populate("addedBy");
 
-    // If admin is filtering by seller name
+    let products = await query.exec();
+
+    // Filter by sellerName in memory
     if (role === "admin" && sellerName) {
-      query = query.where("addedBy.name", new RegExp(sellerName, "i")); // case-insensitive match
+      products = products.filter((p) =>
+        p.addedBy?.name?.toLowerCase().includes(sellerName.toLowerCase())
+      );
     }
 
-    const products = await query.exec();
-    const total = await Product.countDocuments(filter); // Not exact if filtering by sellerName; for real count, refactor
+    const total = await Product.countDocuments(filter); // Optional: recalculate if sellerName filtered
 
     res.status(200).json({
       total,
-      page: parseInt(page),
+      page: pageNumber,
       pageSize: products.length,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limitNumber),
       products,
     });
   } catch (error) {
     next(error);
   }
 };
+
+
 const getAllProductsForBuyers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", category } = req.query;
