@@ -164,63 +164,7 @@ const registerSeller = async (req, res, next) => {
 };
 
 // Login Seller
-const loginSeller = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
-    }
-
-    const seller = await User.findOne({ email });
-    if (!seller) {
-      return res.status(404).json({ message: "Seller not found" });
-    }
-
-    const isMatch = await bcrypt.compare(password, seller.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    if (seller.status !== "approved") {
-      return res.status(403).json({
-        message: `Your account is under ${seller.status}`,
-        status: seller.status,
-      });
-    }
-
-    const accessToken = jwt.sign(
-      { id: seller._id, email: seller.email, role: seller.role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: seller._id, email: seller.email, role: seller.role },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.cookie("jwt", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(200).json({
-      message: "Login successful",
-      _id: seller._id,
-      name: seller.name, // Or seller.name, depending on your schema
-      accessToken,
-      role: seller.role,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 
 const checkResetToken = async (req, res, next) => {
@@ -255,50 +199,7 @@ const checkResetToken = async (req, res, next) => {
   }
 };
 
-const resetPassword = async (req, res, next) => {
-  try {
-    const { newPassword } = req.body;
 
-    if (!newPassword) {
-      const error = new Error("New password is required");
-      error.statusCode = 400;
-      throw error;
-    }
-    const resetToken = req.cookies?.resetToken;
-    if (!resetToken) {
-      const error = new Error("Unauthorized or token is required");
-      error.statusCode = 401;
-      throw error;
-    }
-
-    // Password validation regex (adjust according to your requirements)
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
-    if (!passwordRegex.test(newPassword)) {
-      const error = new Error(
-        "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character, and be no more than 32 characters long"
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
-    const seller = await User.findOne({ email: decoded.email });
-    if (!seller) {
-      const error = new Error("Seller not found");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    seller.password = hashedPassword;
-    await seller.save();
-
-    res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    next(error); // Pass to centralized error handler
-  }
-};
 
 const editSeller = async (req, res, next) => {
   try {
@@ -336,9 +237,7 @@ const getSellerProfile = async (req, res) => {
 };
 module.exports = {
   registerSeller,
-  loginSeller,
   checkResetToken,
-  resetPassword,
   editSeller,
   getSellerProfile,
 };
