@@ -99,7 +99,7 @@ const login = async (req, res, next) => {
     res.status(200).json({
       message: "Login successful",
       _id: user._id,
-      name: user.name, // Or user.name, depending on your schema
+      name: user.name, 
       accessToken,
       role: user.role,
     });

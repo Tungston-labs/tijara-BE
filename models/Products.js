@@ -27,7 +27,6 @@ const productSchema = new mongoose.Schema(
     },
     availableKg: {
       type: Number,
-      required: true,
       min: 0,
     },
     rating: {
