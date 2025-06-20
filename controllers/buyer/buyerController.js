@@ -26,7 +26,8 @@ const reverseGeocode = async (latitude, longitude) => {
 
 const registerBuyer = async (req, res, next) => {
   try {
-    const { name, phone, email, password, locationId, coords } = req.body;
+    const { name, phone, email, password, locationId, coords, country } =
+      req.body;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
       ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
@@ -42,11 +43,9 @@ const registerBuyer = async (req, res, next) => {
     }
 
     if (!usernameRegex.test(name)) {
-      return res
-        .status(400)
-        .json({
-          message: "Name must be 3-50 characters, letters/numbers only.",
-        });
+      return res.status(400).json({
+        message: "Name must be 3-50 characters, letters/numbers only.",
+      });
     }
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format." });
@@ -57,12 +56,10 @@ const registerBuyer = async (req, res, next) => {
         .json({ message: "Phone must be 10 digits, numbers only." });
     }
     if (!passwordRegex.test(password)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Password must include uppercase, lowercase, number, special char.",
-        });
+      return res.status(400).json({
+        message:
+          "Password must include uppercase, lowercase, number, special char.",
+      });
     }
 
     const existingBuyer = await User.findOne({ email });
@@ -116,15 +113,17 @@ const registerBuyer = async (req, res, next) => {
         resolvedLocationId = nearest._id;
       } else {
         // Create new location using reverse geocoding
-        const name = await reverseGeocode(latitude, longitude);
+        const { address, country } = await reverseGeocode(latitude, longitude);
+
         const newLocation = new Location({
-          country ,
+          country,
           location: {
             type: "Point",
             coordinates: [longitude, latitude],
           },
-          name,
+          name: address,
         });
+
         await newLocation.save();
         resolvedLocationId = newLocation._id;
       }
@@ -152,8 +151,6 @@ const registerBuyer = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 const checkResetToken = async (req, res, next) => {
   try {
@@ -186,8 +183,6 @@ const checkResetToken = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 const editBuyer = async (req, res, next) => {
   try {
