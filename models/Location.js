@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const locationSchema = new mongoose.Schema({
   country: {
     type: String,
@@ -26,3 +28,6 @@ const locationSchema = new mongoose.Schema({
 });
 
 locationSchema.index({ location: "2dsphere" });
+
+
+module.exports = mongoose.model("Location", locationSchema);
