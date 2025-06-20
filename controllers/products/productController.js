@@ -11,7 +11,7 @@ const addProduct = async (req, res, next) => {
       itemSubCategory,
       country,
       description,
-      availableKg,
+      availableKg=0,
       priceAED,
       priceINR,
       priceUSD,
