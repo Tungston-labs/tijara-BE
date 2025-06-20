@@ -9,14 +9,36 @@ const axios = require("axios");
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
 const reverseGeocode = async (latitude, longitude) => {
   const apiKey = process.env.OPENCAGE_API_KEY;
   const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
 
   const response = await axios.get(url);
-  const address = response.data?.results?.[0]?.formatted || "Unknown Location";
-  return address;
+  const result = response.data?.results?.[0];
+  const components = result?.components || {};
+
+  console.log("Geocode components:", components);
+
+  const name =
+    components.suburb ||
+    components.hamlet ||
+    components.neighbourhood ||
+    components.village ||
+    components.town ||
+    components.city_district ||
+    components.city ||
+    components.state_district ||
+    result?.formatted ||
+    components.country ||
+    "Unknown Location";
+
+  return {
+    address: name,
+    country: components.country || "Unknown",
+  };
 };
+
 
 const registerSeller = async (req, res, next) => {
   try {
@@ -94,7 +116,7 @@ const registerSeller = async (req, res, next) => {
           const parsed = JSON.parse(coords);
           latitude = parseFloat(parsed.latitude);
           longitude = parseFloat(parsed.longitude);
-        } catch (err){
+        } catch (err) {
           return res
             .status(400)
             .json({ message: "Coordinates must be a valid JSON object" });
@@ -120,16 +142,16 @@ const registerSeller = async (req, res, next) => {
       if (nearest) {
         resolvedLocationId = nearest._id;
       } else {
-        const name = await reverseGeocode(latitude, longitude);
+        const { address, country } = await reverseGeocode(latitude, longitude);
+
         const newLocation = new Location({
-          country: "UAE",
+          country,
           location: {
             type: "Point",
             coordinates: [longitude, latitude],
           },
-          name,
+          name: address,
         });
-        await newLocation.save();
         resolvedLocationId = newLocation._id;
       }
     }
@@ -162,8 +184,6 @@ const registerSeller = async (req, res, next) => {
     next(error);
   }
 };
-
-// Login Seller
 
 
 
@@ -198,8 +218,6 @@ const checkResetToken = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 const editSeller = async (req, res, next) => {
   try {

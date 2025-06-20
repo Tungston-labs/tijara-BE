@@ -19,19 +19,19 @@ const reverseGeocode = async (latitude, longitude) => {
   const result = response.data?.results?.[0];
   const components = result?.components || {};
 
-  // Try to get the most specific location part (priority order)
+  console.log("Geocode components:", components);
+
   const name =
     components.suburb ||
-    components.city_district ||
+    components.hamlet ||
+    components.neighbourhood ||
     components.village ||
     components.town ||
-    components.neighbourhood ||
+    components.city_district ||
     components.city ||
     components.state_district ||
-    components.county ||
-    components.state ||
+    result?.formatted ||
     components.country ||
-    result?.formatted || 
     "Unknown Location";
 
   return {
@@ -39,6 +39,7 @@ const reverseGeocode = async (latitude, longitude) => {
     country: components.country || "Unknown",
   };
 };
+
 
 
 const registerBuyer = async (req, res, next) => {
