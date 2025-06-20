@@ -16,8 +16,12 @@ const reverseGeocode = async (latitude, longitude) => {
   const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
 
   const response = await axios.get(url);
-  const address = response.data?.results?.[0]?.formatted || "Unknown Location";
-  return address;
+  const result = response.data?.results?.[0];
+
+  return {
+    address: result?.formatted || "Unknown Location",
+    country: result?.components?.country || "Unknown",
+  };
 };
 
 const registerBuyer = async (req, res, next) => {
@@ -114,7 +118,7 @@ const registerBuyer = async (req, res, next) => {
         // Create new location using reverse geocoding
         const name = await reverseGeocode(latitude, longitude);
         const newLocation = new Location({
-          country: "UAE",
+          country ,
           location: {
             type: "Point",
             coordinates: [longitude, latitude],
