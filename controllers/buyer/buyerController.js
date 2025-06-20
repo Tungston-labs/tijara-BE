@@ -17,12 +17,29 @@ const reverseGeocode = async (latitude, longitude) => {
 
   const response = await axios.get(url);
   const result = response.data?.results?.[0];
+  const components = result?.components || {};
+
+  // Try to get the most specific location part (priority order)
+  const name =
+    components.suburb ||
+    components.city_district ||
+    components.village ||
+    components.town ||
+    components.neighbourhood ||
+    components.city ||
+    components.state_district ||
+    components.county ||
+    components.state ||
+    components.country ||
+    result?.formatted || 
+    "Unknown Location";
 
   return {
-    address: result?.formatted || "Unknown Location",
-    country: result?.components?.country || "Unknown",
+    address: name,
+    country: components.country || "Unknown",
   };
 };
+
 
 const registerBuyer = async (req, res, next) => {
   try {
