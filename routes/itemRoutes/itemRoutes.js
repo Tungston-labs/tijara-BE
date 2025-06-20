@@ -6,19 +6,19 @@ const { getItemNames, addItemName } = require("../../controllers/itemName/itemNa
 const { getSubCategories, addSubCategory } = require("../../controllers/itemSubcategory/itemSubCategory");
 
 
-const verifyAdmin=(req,res,next)=>{
-    if(req.user.role==="admin"){
-        return next();
-    }
-    return res.status(403).json("Access denied");
-}
-router.post("/add-name",jwtAuthentication,verifyAdmin,addItemName
+const allowAdminOrSeller = (req, res, next) => {
+  if (req.user.role === "admin" || req.user.role === "seller") {
+    return next();
+  }
+  return res.status(403).json({ message: "Access denied" });
+};
+router.post("/add-name",jwtAuthentication,allowAdminOrSeller,addItemName
 
  );
-router.get("/get-names", jwtAuthentication,verifyAdmin,getItemNames);
+router.get("/get-names", jwtAuthentication,allowAdminOrSeller,getItemNames);
 
 // Subcategory Routes
-router.post("/add-subcategory", jwtAuthentication,verifyAdmin, addSubCategory);
-router.get("/get-subcategories", jwtAuthentication,verifyAdmin, getSubCategories);
+router.post("/add-subcategory", jwtAuthentication,allowAdminOrSeller, addSubCategory);
+router.get("/get-subcategories", jwtAuthentication,allowAdminOrSeller, getSubCategories);
 
 module.exports = router
