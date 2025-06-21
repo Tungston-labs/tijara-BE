@@ -179,13 +179,14 @@ const getAllProductsForBuyers = async (req, res, next) => {
 // View single product
 const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate("addedBy");
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.status(200).json(product);
   } catch (error) {
     next(error);
   }
 };
+
 
 // Update product
 const updateProduct = async (req, res, next) => {
