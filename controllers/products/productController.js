@@ -2,6 +2,8 @@ const Product = require("../../models/Products");
 const User = require("../../models/User");
 const Admin = require("../../models/Admin");
 const path = require("path");
+const fs = require("fs");
+
 
 const addProduct = async (req, res, next) => {
   try {
@@ -257,24 +259,25 @@ const updateProduct = async (req, res, next) => {
       : product.pricePerKg;
     product.images = finalImages;
 
-    await product.save(); // ✅ Only delete files if this succeeds
+    await product.save();
 
-    // ✅ Now safely delete removed image files
-    console.log("🗑️ Removing old images:", removedImageUrls);
-    removedImageUrls.forEach((url) => {
-      try {
-        const filename = path.basename(url); // safer than split
-        const filePath = path.join(__dirname, "../uploads/products", filename);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-          console.log("✅ Deleted file:", filePath);
-        } else {
-          console.warn("⚠️ File not found:", filePath);
-        }
-      } catch (err) {
-        console.error("❌ Error deleting image:", err);
-      }
-    });
+   removedImageUrls.forEach((url) => {
+  try {
+    const filename = path.basename(url); // safer extraction
+    const filePath = path.join(__dirname, "..", "uploads", "products", filename);
+
+    console.log("Resolved file path for deletion:", filePath);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log("✅ Deleted file:", filePath);
+    } else {
+      console.warn("⚠️ File not found:", filePath);
+    }
+  } catch (err) {
+    console.error("❌ Error deleting image:", err);
+  }
+});
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
