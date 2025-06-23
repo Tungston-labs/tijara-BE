@@ -203,6 +203,7 @@ const updateProduct = async (req, res, next) => {
       priceINR,
       priceUSD,
       expiryDate,
+      existingImages, // This comes as a stringified array
     } = req.body;
 
     const { id: userId, role } = req.user;
@@ -229,15 +230,13 @@ const updateProduct = async (req, res, next) => {
     }
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    let newImagePaths = [];
-    if (req.files && req.files.length > 0) {
-      newImagePaths = req.files.map(
-        (file) => `${baseUrl}/uploads/products/${file.filename}`
-      );
-    }
+    const newImagePaths = req.files?.map(
+      (file) => `${baseUrl}/uploads/products/${file.filename}`
+    ) || [];
 
-    const finalImages =
-      newImagePaths.length > 0 ? newImagePaths : product.images;
+    const existing = existingImages ? JSON.parse(existingImages) : [];
+
+    const finalImages = [...existing, ...newImagePaths];
 
     // Update fields
     product.itemCategory = itemCategory || product.itemCategory;
@@ -256,9 +255,11 @@ const updateProduct = async (req, res, next) => {
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
+    console.error("Update Error:", error);
     next(error);
   }
 };
+
 
 // Delete product
 const deleteProduct = async (req, res, next) => {
