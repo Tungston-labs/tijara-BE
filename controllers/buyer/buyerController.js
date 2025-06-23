@@ -192,10 +192,7 @@ const registerBuyer = async (req, res, next) => {
     next(error);
   }
 };
-res.status(201).json({
-  message: "Buyer registered successfully",
-  buyer: buyerData,
-});
+
 
 const checkResetToken = async (req, res, next) => {
   try {
