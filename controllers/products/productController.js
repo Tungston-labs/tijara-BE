@@ -203,7 +203,7 @@ const updateProduct = async (req, res, next) => {
       priceINR,
       priceUSD,
       expiryDate,
-      existingImages, // This comes as a stringified array
+      existingImages, // Comes as JSON string
     } = req.body;
 
     const { id: userId, role } = req.user;
@@ -229,16 +229,21 @@ const updateProduct = async (req, res, next) => {
         .json({ message: "Unauthorized to update this product." });
     }
 
+    // Parse image URLs to retain
+    const existing = existingImages ? JSON.parse(existingImages) : [];
+
+    // Capture removed image URLs now but delete after saving
+    const oldImageUrls = product.images || [];
+    const removedImageUrls = oldImageUrls.filter((url) => !existing.includes(url));
+
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const newImagePaths = req.files?.map(
       (file) => `${baseUrl}/uploads/products/${file.filename}`
     ) || [];
 
-    const existing = existingImages ? JSON.parse(existingImages) : [];
-
     const finalImages = [...existing, ...newImagePaths];
 
-    // Update fields
+    // Update product fields
     product.itemCategory = itemCategory || product.itemCategory;
     product.itemName = itemName || product.itemName;
     product.itemSubCategory = itemSubCategory || product.itemSubCategory;
@@ -251,7 +256,21 @@ const updateProduct = async (req, res, next) => {
       : product.pricePerKg;
     product.images = finalImages;
 
-    await product.save();
+    await product.save(); 
+
+    removedImageUrls.forEach((url) => {
+      try {
+        const filename = url.split("/uploads/products/")[1];
+        if (filename) {
+          const filePath = path.join(__dirname, "../uploads/products", filename);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      } catch (err) {
+        console.error("Error deleting image:", err);
+      }
+    });
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
