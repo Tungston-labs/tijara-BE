@@ -264,7 +264,7 @@ const updateProduct = async (req, res, next) => {
    removedImageUrls.forEach((url) => {
   try {
     const filename = path.basename(url); // safer extraction
-    const filePath = path.join(__dirname, "..", "uploads", "products", filename);
+    const filePath = path.join(__dirname, "..", "..", "uploads", "products", filename);
 
     console.log("Resolved file path for deletion:", filePath);
 
