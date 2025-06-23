@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Location = require("../../models/Location");
 const axios = require("axios");
+const { buyer } = require("../../utils/userModals");
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -192,8 +193,8 @@ const registerBuyer = async (req, res, next) => {
   }
 };
 res.status(201).json({
-  message: "Seller registered successfully",
-  seller: buyerData,
+  message: "Buyer registered successfully",
+  buyer: buyerData,
 });
 
 const checkResetToken = async (req, res, next) => {
