@@ -2,6 +2,8 @@ const Product = require("../../models/Products");
 const User = require("../../models/User");
 const Admin = require("../../models/Admin");
 const path = require("path");
+const fs = require("fs");
+
 
 const addProduct = async (req, res, next) => {
   try {
@@ -233,15 +235,16 @@ const updateProduct = async (req, res, next) => {
         .json({ message: "Unauthorized to update this product." });
     }
 
-    // Parse image URLs to retain
+    // Parse retained image URLs from frontend
     const existing = existingImages ? JSON.parse(existingImages) : [];
 
-    // Capture removed image URLs now but delete after saving
+    // Identify which images to delete
     const oldImageUrls = product.images || [];
     const removedImageUrls = oldImageUrls.filter(
       (url) => !existing.includes(url)
     );
 
+    // Add new uploaded images
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const newImagePaths =
       req.files?.map(
@@ -250,7 +253,7 @@ const updateProduct = async (req, res, next) => {
 
     const finalImages = [...existing, ...newImagePaths];
 
-    // Update product fields
+    // Update fields
     product.itemCategory = itemCategory || product.itemCategory;
     product.itemName = itemName || product.itemName;
     product.itemSubCategory = itemSubCategory || product.itemSubCategory;
@@ -265,27 +268,27 @@ const updateProduct = async (req, res, next) => {
 
     await product.save();
 
-    removedImageUrls.forEach((url) => {
-      try {
-        const filename = url.split("/uploads/products/")[1];
-        if (filename) {
-          const filePath = path.join(
-            __dirname,
-            "../uploads/products",
-            filename
-          );
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-      } catch (err) {
-        console.error("Error deleting image:", err);
-      }
-    });
+   removedImageUrls.forEach((url) => {
+  try {
+    const filename = path.basename(url); // safer extraction
+    const filePath = path.join(__dirname, "..", "..", "uploads", "products", filename);
+
+    console.log("Resolved file path for deletion:", filePath);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log("✅ Deleted file:", filePath);
+    } else {
+      console.warn("⚠️ File not found:", filePath);
+    }
+  } catch (err) {
+    console.error("❌ Error deleting image:", err);
+  }
+});
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
-    console.error("Update Error:", error);
+    console.error("❌ Update Error:", error);
     next(error);
   }
 };
