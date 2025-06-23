@@ -205,11 +205,7 @@ const registerSeller = async (req, res, next) => {
         next(error);
       }
     };
-    res.status(201).json({
-      message: "Seller registered successfully",
-      seller: sellerData,
-    });
-  
+    
 
 
 
