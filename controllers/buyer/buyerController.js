@@ -40,8 +40,6 @@ const reverseGeocode = async (latitude, longitude) => {
   };
 };
 
-
-
 const registerBuyer = async (req, res, next) => {
   try {
     const { name, phone, email, password, locationId, coords, country } =
@@ -162,13 +160,41 @@ const registerBuyer = async (req, res, next) => {
     await newBuyer.save();
 
     const { password: _, ...buyerData } = newBuyer.toObject();
-    res
-      .status(201)
-      .json({ message: "Buyer registered successfully", buyer: buyerData });
+
+    const accessToken = jwt.sign(
+      { id: buyerData._id, email: buyerData.email, role: buyerData.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: buyerData._id, email: buyerData.email, role: buyerData.role },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      message: "Signed up successful",
+      _id: buyerData._id,
+      name: buyerData.name,
+      accessToken,
+      role: buyerData.role,
+    });
   } catch (error) {
     next(error);
   }
 };
+res.status(201).json({
+  message: "Seller registered successfully",
+  seller: buyerData,
+});
 
 const checkResetToken = async (req, res, next) => {
   try {

@@ -173,17 +173,44 @@ const registerSeller = async (req, res, next) => {
     });
 
     await newSeller.save();
-
+   
     const { password: _, ...sellerData } = newSeller.toObject();
+       const accessToken = jwt.sign(
+          { id: sellerData._id, email: sellerData.email, role: sellerData.role },
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "1h" }
+        );
+    
+        const refreshToken = jwt.sign(
+          { id: sellerData._id, email: sellerData.email, role: sellerData.role },
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: "7d" }
+        );
+    
+        res.cookie("jwt", refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Lax",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+    
+        res.status(201).json({
+          message: "Signed up successful",
+          _id: sellerData._id,
+          name: sellerData.name, 
+          accessToken,
+          role: sellerData.role,
+        });
+      } catch (error) {
+        next(error);
+      }
+    };
     res.status(201).json({
       message: "Seller registered successfully",
       seller: sellerData,
     });
-  } catch (error) {
-    console.error("Registration error:", error);
-    next(error);
-  }
-};
+  
+
 
 
 
