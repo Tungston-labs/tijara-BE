@@ -11,7 +11,7 @@ const addProduct = async (req, res, next) => {
       itemSubCategory,
       country,
       description,
-      availableKg=0,
+      availableKg = 0,
       priceAED,
       priceINR,
       priceUSD,
@@ -90,7 +90,14 @@ const addProduct = async (req, res, next) => {
 
 const getAllProducts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search = "", category, status, sellerName } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      category,
+      status,
+      sellerName,
+    } = req.query;
     const { id, role } = req.user;
 
     const pageNumber = parseInt(page);
@@ -138,17 +145,16 @@ const getAllProducts = async (req, res, next) => {
   }
 };
 
-
 const getAllProductsForBuyers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search = "", category } = req.query;
+    const { page = 1, limit = 10, search = "", itemCategory } = req.query;
 
     const filter = {
       expiryDate: { $gt: new Date() }, // Only unexpired
     };
 
-    if (category) {
-      filter.itemCategory = category;
+    if (itemCategory) {
+      filter.itemCategory = new RegExp(`^${itemCategory}$`, "i");
     }
 
     if (search) {
@@ -175,7 +181,6 @@ const getAllProductsForBuyers = async (req, res, next) => {
   }
 };
 
-
 // View single product
 const getProductById = async (req, res, next) => {
   try {
@@ -186,7 +191,6 @@ const getProductById = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // Update product
 const updateProduct = async (req, res, next) => {
@@ -234,12 +238,15 @@ const updateProduct = async (req, res, next) => {
 
     // Capture removed image URLs now but delete after saving
     const oldImageUrls = product.images || [];
-    const removedImageUrls = oldImageUrls.filter((url) => !existing.includes(url));
+    const removedImageUrls = oldImageUrls.filter(
+      (url) => !existing.includes(url)
+    );
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const newImagePaths = req.files?.map(
-      (file) => `${baseUrl}/uploads/products/${file.filename}`
-    ) || [];
+    const newImagePaths =
+      req.files?.map(
+        (file) => `${baseUrl}/uploads/products/${file.filename}`
+      ) || [];
 
     const finalImages = [...existing, ...newImagePaths];
 
@@ -256,13 +263,17 @@ const updateProduct = async (req, res, next) => {
       : product.pricePerKg;
     product.images = finalImages;
 
-    await product.save(); 
+    await product.save();
 
     removedImageUrls.forEach((url) => {
       try {
         const filename = url.split("/uploads/products/")[1];
         if (filename) {
-          const filePath = path.join(__dirname, "../uploads/products", filename);
+          const filePath = path.join(
+            __dirname,
+            "../uploads/products",
+            filename
+          );
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
@@ -278,7 +289,6 @@ const updateProduct = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // Delete product
 const deleteProduct = async (req, res, next) => {
@@ -332,26 +342,21 @@ const getSubCategoriesByItemName = async (req, res) => {
 
   try {
     const match = {
-      itemName: new RegExp(`^${itemName}$`, "i") // exact match, case-insensitive
+      itemName: new RegExp(`^${itemName}$`, "i"), // exact match, case-insensitive
     };
-    
 
     if (search) {
       match.itemSubCategory = new RegExp(search, "i");
     }
 
-    const subCategories = await Product
-      .find(match)
-      .distinct("itemSubCategory");
-    
+    const subCategories = await Product.find(match).distinct("itemSubCategory");
+
     res.status(200).json({ itemName, subCategories });
   } catch (error) {
     console.error("Fetch subcategories error:", error);
     res.status(500).json({ message: "Failed to fetch subcategories" });
   }
 };
-
-
 
 module.exports = {
   addProduct,
@@ -361,5 +366,5 @@ module.exports = {
   updateProduct,
   getItemNames,
   getSubCategoriesByItemName,
-  getAllProductsForBuyers
+  getAllProductsForBuyers,
 };
