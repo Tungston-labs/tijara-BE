@@ -6,7 +6,12 @@ const SubscriptionHistory = require("../../models/SubscriptionHistory");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
 const SubscriptionPlan = require("../../models/SubscriptionPlan");
-const { validateName, validateEmail, validatePassword, validatePhone } = require("../../utils/validator");
+const {
+  validateName,
+  validateEmail,
+  validatePassword,
+  validatePhone,
+} = require("../../utils/validator");
 
 const signUp = async (req, res, next) => {
   try {
@@ -21,12 +26,16 @@ const signUp = async (req, res, next) => {
 
     if (!validateName(username)) {
       res.status(400);
-      throw new Error("Username must be 3-50 characters long and contain only letters or numbers.");
+      throw new Error(
+        "Username must be 3-50 characters long and contain only letters or numbers."
+      );
     }
 
     if (!validatePassword(password)) {
       res.status(400);
-      throw new Error("Password must be 8-32 characters and include uppercase, lowercase, number, and special character.");
+      throw new Error(
+        "Password must be 8-32 characters and include uppercase, lowercase, number, and special character."
+      );
     }
 
     const existingUser = await Admin.findOne({ email });
@@ -72,7 +81,6 @@ const signUp = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // ..For admin login
 
@@ -342,26 +350,25 @@ const addSellerByAdmin = async (req, res, next) => {
     const profileImagePath = `${baseUrl}/uploads/users/sellers/${req.files.profileImage[0].filename}`;
 
     // Input validations
- 
-if (!validateName(name)) {
-  return res.status(400).json({ message: "Invalid name format" });
-}
 
-if (!validateEmail(email)) {
-  return res.status(400).json({ message: "Invalid email address" });
-}
+    if (!validateName(name)) {
+      return res.status(400).json({ message: "Invalid name format" });
+    }
 
-if (!validatePhone(phone)) {
-  return res.status(400).json({ message: "Invalid phone number" });
-}
+    if (!validateEmail(email)) {
+      return res.status(400).json({ message: "Invalid email address" });
+    }
 
-if (!validatePassword(password)) {
-  return res.status(400).json({
-    message:
-      "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
-  });
-}
+    if (!validatePhone(phone)) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
 
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+      });
+    }
 
     const existingSeller = await User.findOne({ email });
     if (existingSeller) {
@@ -688,7 +695,7 @@ const checkUserStatus = async (req, res) => {
   }
 
   try {
-    const user = await User.findById(id).select("_id email status");
+    const user = await User.findById(id).select("_id email status role");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -698,14 +705,13 @@ const checkUserStatus = async (req, res) => {
       id: user._id,
       email: user.email,
       status: user.status,
-      role:user.role,
+      role: user.role,
     });
   } catch (err) {
     console.error("Error fetching user status:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 module.exports = {
   signUp,
