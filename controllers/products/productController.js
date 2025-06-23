@@ -229,13 +229,14 @@ const updateProduct = async (req, res, next) => {
         .json({ message: "Unauthorized to update this product." });
     }
 
-    // Parse image URLs to retain
+    // Parse retained image URLs from frontend
     const existing = existingImages ? JSON.parse(existingImages) : [];
 
-    // Capture removed image URLs now but delete after saving
+    // Identify which images to delete
     const oldImageUrls = product.images || [];
     const removedImageUrls = oldImageUrls.filter((url) => !existing.includes(url));
 
+    // Add new uploaded images
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const newImagePaths = req.files?.map(
       (file) => `${baseUrl}/uploads/products/${file.filename}`
@@ -243,7 +244,7 @@ const updateProduct = async (req, res, next) => {
 
     const finalImages = [...existing, ...newImagePaths];
 
-    // Update product fields
+    // Update fields
     product.itemCategory = itemCategory || product.itemCategory;
     product.itemName = itemName || product.itemName;
     product.itemSubCategory = itemSubCategory || product.itemSubCategory;
@@ -256,25 +257,28 @@ const updateProduct = async (req, res, next) => {
       : product.pricePerKg;
     product.images = finalImages;
 
-    await product.save(); 
+    await product.save(); // ✅ Only delete files if this succeeds
 
+    // ✅ Now safely delete removed image files
+    console.log("🗑️ Removing old images:", removedImageUrls);
     removedImageUrls.forEach((url) => {
       try {
-        const filename = url.split("/uploads/products/")[1];
-        if (filename) {
-          const filePath = path.join(__dirname, "../uploads/products", filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
+        const filename = path.basename(url); // safer than split
+        const filePath = path.join(__dirname, "../uploads/products", filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log("✅ Deleted file:", filePath);
+        } else {
+          console.warn("⚠️ File not found:", filePath);
         }
       } catch (err) {
-        console.error("Error deleting image:", err);
+        console.error("❌ Error deleting image:", err);
       }
     });
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
-    console.error("Update Error:", error);
+    console.error("❌ Update Error:", error);
     next(error);
   }
 };
