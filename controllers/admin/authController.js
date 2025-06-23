@@ -698,6 +698,7 @@ const checkUserStatus = async (req, res) => {
       id: user._id,
       email: user.email,
       status: user.status,
+      role:user.role,
     });
   } catch (err) {
     console.error("Error fetching user status:", err);
