@@ -107,6 +107,37 @@ const login = async (req, res, next) => {
     next(error);
   }
 };
+const checkResetToken = async (req, res, next) => {
+  try {
+    const resetToken = req.cookies?.resetToken;
+
+    if (!resetToken) {
+      const error = new Error("Unauthorized or token expired");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+    } catch (err) {
+      err.statusCode = 401;
+      err.message = "Invalid or expired token";
+      throw err;
+    }
+
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json({ message: "Token verified" });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const resetPassword = async (req, res, next) => {
   try {
@@ -152,4 +183,4 @@ const resetPassword = async (req, res, next) => {
 };
 
 
-module.exports={sendOtpController,verifyOtpController,login,resetPassword}
+module.exports={sendOtpController, verifyOtpController, login, checkResetToken, resetPassword} 
