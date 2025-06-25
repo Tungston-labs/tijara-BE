@@ -9,26 +9,24 @@ const userModels = {
   buyer: User, // Now points to shared User model
   seller: User,
 };
-
 const sendOtpForPasswordReset = async (req, res, next) => {
   try {
-    const { email, role } = req.body;
+    const { email } = req.body;
 
-    if (!email || !role || !userModels[role]) {
-      return res.status(400).json({ message: "Email and valid role are required" });
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    const UserModel = userModels[role];
-    const user = await UserModel.findOne({ email, role }); // Match both email and role
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: `${role} not found` });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const otp = await generateUniqueOtp();
-    await Otp.create({ otp, email, role });
+    await Otp.create({ otp, email });
 
-    // TODO: Send OTP via mail service
-    console.log(`OTP for ${role}:`, otp); // dev-only
+    // TODO: Send OTP via email service here
+    console.log(`OTP for ${email}:`, otp); // For dev only
 
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
@@ -36,26 +34,27 @@ const sendOtpForPasswordReset = async (req, res, next) => {
   }
 };
 
+
 const verifyOtpForPasswordReset = async (req, res, next) => {
   try {
-    const { otp, email, role } = req.body;
+    const { otp, email } = req.body;
 
-    if (!otp || !email || !role || !userModels[role]) {
-      return res.status(400).json({ message: "OTP, email, and valid role are required" });
+    if (!otp || !email) {
+      return res.status(400).json({ message: "OTP and email are required" });
     }
 
-    const UserModel = userModels[role];
-    const user = await UserModel.findOne({ email, role }); // Match both email and role
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: `${role} not found` });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const recentOtp = await Otp.findOne({ email, role }).sort({ createdAt: -1 });
+    const recentOtp = await Otp.findOne({ email }).sort({ createdAt: -1 });
+
     if (!recentOtp || recentOtp.otp !== otp) {
       return res.status(422).json({ message: "Invalid OTP" });
     }
 
-    const resetToken = jwt.sign({ email, role }, process.env.RESET_TOKEN_SECRET, {
+    const resetToken = jwt.sign({ email }, process.env.RESET_TOKEN_SECRET, {
       expiresIn: "5m",
     });
 
@@ -71,5 +70,6 @@ const verifyOtpForPasswordReset = async (req, res, next) => {
     next(error);
   }
 };
+
 
 module.exports = { sendOtpForPasswordReset, verifyOtpForPasswordReset };
