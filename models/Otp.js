@@ -17,7 +17,7 @@ const otpSchema = new mongoose.Schema({
     },
     role:{
       type:String,
-      required:true
+      
     },
   });
   otpSchema.index({ otp: 1 }); 

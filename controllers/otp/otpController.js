@@ -1,14 +1,9 @@
-const Admin = require("../../models/Admin");
 const User = require("../../models/User"); // Unified model for buyer & seller
 const Otp = require("../../models/Otp");
 const jwt = require("jsonwebtoken");
 const { generateUniqueOtp } = require("../../utils/otpHelper");
 
-const userModels = {
-  admin: Admin,
-  buyer: User, // Now points to shared User model
-  seller: User,
-};
+
 const sendOtpForPasswordReset = async (req, res, next) => {
   try {
     const { email } = req.body;
