@@ -68,6 +68,7 @@ const registerSeller = async (req, res, next) => {
       managerName,
       locationId,
       coords,
+      country,
     } = req.body;
     // Trade License Copy path
     const tradeLicensePath = req.files?.tradeLicenseCopy?.[0]?.filename
