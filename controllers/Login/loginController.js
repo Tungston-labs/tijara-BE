@@ -102,6 +102,7 @@ const login = async (req, res, next) => {
       name: user.name, 
       accessToken,
       role: user.role,
+      image:user.profileImage
     });
   } catch (error) {
     next(error);
