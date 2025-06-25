@@ -10,6 +10,23 @@ const usernameRegex = /^[a-zA-Z0-9 ]+$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
 
+const phoneValidators = {
+  IN: /^(\+91)?[6-9][0-9]{9}$/,
+  UAE: /^(\+971)?(50|52|54|55|56)[0-9]{7}$/,
+  SA: /^(\+966)?5[0-9]{8}$/,
+  QA: /^(\+974)?(3|5|6|7)[0-9]{7}$/,
+  OM: /^(\+968)?(7[1-9]|9[1-9])[0-9]{6}$/,
+  KW: /^(\+965)?(5|6|9)[0-9]{7}$/,
+  BH: /^(\+973)?(3|6|7)[0-9]{7}$/,
+};
+const isValidPhone = (phone, country) => {
+  const regex = phoneValidators[country?.toUpperCase()];
+  if (!regex) {
+    return false; // Unknown country code
+  }
+  return regex.test(phone);
+};
+
 const reverseGeocode = async (latitude, longitude) => {
   const apiKey = process.env.OPENCAGE_API_KEY;
   const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
@@ -38,7 +55,6 @@ const reverseGeocode = async (latitude, longitude) => {
     country: components.country || "Unknown",
   };
 };
-
 
 const registerSeller = async (req, res, next) => {
   try {
@@ -88,8 +104,11 @@ const registerSeller = async (req, res, next) => {
       return res.status(400).json({ message: "Invalid name format" });
     if (!validator.isEmail(email))
       return res.status(400).json({ message: "Invalid email" });
-    if (!validator.isMobilePhone(phone))
-      return res.status(400).json({ message: "Invalid phone" });
+    if (!isValidPhone(phone, country)) {
+      return res.status(400).json({
+        message: "Invalid phone number format for selected country.",
+      });
+    }
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         message:
@@ -173,42 +192,38 @@ const registerSeller = async (req, res, next) => {
     });
 
     await newSeller.save();
-   
+
     const { password: _, ...sellerData } = newSeller.toObject();
-       const accessToken = jwt.sign(
-          { id: sellerData._id, email: sellerData.email, role: sellerData.role },
-          process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "1h" }
-        );
-    
-        const refreshToken = jwt.sign(
-          { id: sellerData._id, email: sellerData.email, role: sellerData.role },
-          process.env.REFRESH_TOKEN_SECRET,
-          { expiresIn: "7d" }
-        );
-    
-        res.cookie("jwt", refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "Lax",
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-    
-        res.status(201).json({
-          message: "Signed up successful",
-          _id: sellerData._id,
-          name: sellerData.name, 
-          accessToken,
-          role: sellerData.role,
-        });
-      } catch (error) {
-        next(error);
-      }
-    };
-    
+    const accessToken = jwt.sign(
+      { id: sellerData._id, email: sellerData.email, role: sellerData.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
 
+    const refreshToken = jwt.sign(
+      { id: sellerData._id, email: sellerData.email, role: sellerData.role },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
 
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
+    res.status(201).json({
+      message: "Signed up successful",
+      _id: sellerData._id,
+      name: sellerData.name,
+      accessToken,
+      role: sellerData.role,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const checkResetToken = async (req, res, next) => {
   try {
