@@ -1,12 +1,10 @@
 const express= require("express");
 const { registerBuyer, loginBuyer, resetPassword, editBuyer, getBuyerProfile } = require("../../controllers/buyer/buyerController");
-const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const router= express.Router();
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
 const compressUploadedImages = require("../../middleware/imageCompressor");
-const { checkUserStatus } = require("../../controllers/admin/authController");
 router.post("/refresh",refresh);
 
 router.post(
@@ -16,10 +14,6 @@ router.post(
   registerBuyer
 );
 
-
-
-router.post("/send-otp",sendOtpForPasswordReset);
-router.post("/verify-otp", verifyOtpForPasswordReset);
 router.post("/refresh-buyer", refresh);
 router.put("/edit/:id", jwtAuthentication,   upload.fields([{ name: "profileImage", maxCount: 1 }]),
 compressUploadedImages, editBuyer);
