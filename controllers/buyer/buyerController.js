@@ -8,6 +8,7 @@ const { buyer } = require("../../utils/userModals");
 
 const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^[0-9]{10}$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
 
@@ -20,23 +21,6 @@ const reverseGeocode = async (latitude, longitude) => {
   const components = result?.components || {};
 
   console.log("Geocode components:", components);
-
-  const phoneValidators = {
-    IN: /^(\+91)?[6-9][0-9]{9}$/,
-    UAE: /^(\+971)?(50|52|54|55|56)[0-9]{7}$/,
-    SA: /^(\+966)?5[0-9]{8}$/,
-    QA: /^(\+974)?(3|5|6|7)[0-9]{7}$/,
-    OM: /^(\+968)?(7[1-9]|9[1-9])[0-9]{6}$/,
-    KW: /^(\+965)?(5|6|9)[0-9]{7}$/,
-    BH: /^(\+973)?(3|6|7)[0-9]{7}$/,
-  };
-  const isValidPhone = (phone, country) => {
-    const regex = phoneValidators[country?.toUpperCase()];
-    if (!regex) {
-      return false; // Unknown country code
-    }
-    return regex.test(phone);
-  };
 
   const name =
     components.suburb ||
@@ -83,10 +67,10 @@ const registerBuyer = async (req, res, next) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format." });
     }
-    if (!isValidPhone(phone, country)) {
-      return res.status(400).json({
-        message: "Invalid phone number format for selected country.",
-      });
+    if (!phoneRegex.test(phone)) {
+      return res
+        .status(400)
+        .json({ message: "Phone must be 10 digits, numbers only." });
     }
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
@@ -208,6 +192,7 @@ const registerBuyer = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const checkResetToken = async (req, res, next) => {
   try {
