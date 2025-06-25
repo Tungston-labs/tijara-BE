@@ -161,16 +161,16 @@ const resetPassword = async (req, res, next) => {
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({
         message:
-          "Password must be 8-32 chars long, include uppercase, lowercase, number, and special character",
+          "Password must be 8-32 characters, include uppercase, lowercase, number, and special character.",
       });
     }
 
     const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
-    const { email, role } = decoded;
+    const { email } = decoded;
 
-    const user = await User.findOne({ email, role });
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: `${role} not found` });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -182,6 +182,7 @@ const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 module.exports={sendOtpController, verifyOtpController, login, checkResetToken, resetPassword} 
