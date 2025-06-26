@@ -7,7 +7,12 @@ const Location = require("../../models/Location");
 const axios = require("axios");
 
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
-const phoneRegex = /^[0-9]{10}$/;
+if (!phone.startsWith("+")) {
+  phone = "+" + phone;
+}
+
+const phoneRegex =
+  /^(\+91[6-9]\d{9}|\+9715\d{8}|\+9665\d{8}|\+9689\d{7}|\+974[3567]\d{7}|\+9733\d{7}|\+965[569]\d{7})$/;
 
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
@@ -91,9 +96,10 @@ const registerSeller = async (req, res, next) => {
     if (!validator.isEmail(email))
       return res.status(400).json({ message: "Invalid email" });
     if (!phoneRegex.test(phone)) {
-      return res
-        .status(400)
-        .json({ message: "Phone must be 10 digits, numbers only." });
+      return res.status(400).json({
+        message:
+          "Invalid phone number. Must be valid for India or GCC with country code.",
+      });
     }
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
