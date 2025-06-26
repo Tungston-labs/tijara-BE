@@ -7,9 +7,6 @@ const Location = require("../../models/Location");
 const axios = require("axios");
 
 const usernameRegex = /^[a-zA-Z0-9 ]+$/;
-if (!phone.startsWith("+")) {
-  phone = "+" + phone;
-}
 
 const phoneRegex =
   /^(\+91[6-9]\d{9}|\+9715\d{8}|\+9665\d{8}|\+9689\d{7}|\+974[3567]\d{7}|\+9733\d{7}|\+965[569]\d{7})$/;
@@ -89,7 +86,9 @@ const registerSeller = async (req, res, next) => {
           "All fields including trade license copy, profile image, and location are required",
       });
     }
-
+    if (!phone.startsWith("+")) {
+      phone = "+" + phone;
+    }
     // Validate input formats
     if (!usernameRegex.test(name))
       return res.status(400).json({ message: "Invalid name format" });

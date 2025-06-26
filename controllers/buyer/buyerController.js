@@ -10,9 +10,6 @@ const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
-if (!phone.startsWith("+")) {
-  phone = "+" + phone;
-}
 
 const phoneRegex =
   /^(\+91[6-9]\d{9}|\+9715\d{8}|\+9665\d{8}|\+9689\d{7}|\+974[3567]\d{7}|\+9733\d{7}|\+965[569]\d{7})$/;
@@ -61,6 +58,9 @@ const registerBuyer = async (req, res, next) => {
         message:
           "All fields are required including location or coordinates and profile image",
       });
+    }
+    if (!phone.startsWith("+")) {
+      phone = "+" + phone;
     }
 
     if (!usernameRegex.test(name)) {
