@@ -49,7 +49,6 @@ const registerSeller = async (req, res, next) => {
       name,
       email,
       password,
-      phone,
       companyName,
       tradeLicenseNumber,
       managerName,
@@ -57,6 +56,7 @@ const registerSeller = async (req, res, next) => {
       coords,
       country,
     } = req.body;
+    let phone = req.body.phone;
     // Trade License Copy path
     const tradeLicensePath = req.files?.tradeLicenseCopy?.[0]?.filename
       ? `${req.protocol}://${req.get("host")}/uploads/licenses/${

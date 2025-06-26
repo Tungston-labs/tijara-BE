@@ -44,8 +44,9 @@ const reverseGeocode = async (latitude, longitude) => {
 
 const registerBuyer = async (req, res, next) => {
   try {
-    const { name, phone, email, password, locationId, coords, country } =
+    const { name, email, password, locationId, coords, country } =
       req.body;
+        let phone = req.body.phone;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
       ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
