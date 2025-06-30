@@ -150,9 +150,11 @@ const getAllProducts = async (req, res, next) => {
 const getAllProductsForBuyers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", itemCategory } = req.query;
+    const loggedInUserId = mongoose.Types.ObjectId(req.user.id); // Ensure ObjectId type
 
     const filter = {
       expiryDate: { $gt: new Date() }, // Only unexpired
+       addedBy: { $ne: loggedInUserId },
     };
 
     if (itemCategory) {
