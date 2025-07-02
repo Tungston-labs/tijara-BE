@@ -202,20 +202,15 @@ const refresh = async (req, res) => {
             .json({ message: "Invalid or expired refresh token" });
         }
 
-        const { id, email, role } = decoded;
+        const { id, email } = decoded;
 
-        const UserModel = User[role]; // Dynamically choose model based on role
-        if (!UserModel) {
-          return res.status(400).json({ message: "Invalid user role" });
-        }
-
-        const user = await UserModel.findById(id);
+        const user = await User.findById(id);
         if (!user || user.email !== email) {
           return res.status(404).json({ message: "User not found" });
         }
 
         const accessToken = jwt.sign(
-          { id: user._id, email: user.email, role },
+          { id: user._id, email: user.email, role: user.role },
           process.env.ACCESS_TOKEN_SECRET,
           { expiresIn: "1h" }
         );
@@ -231,7 +226,6 @@ const refresh = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 
 module.exports={sendOtpController, verifyOtpController, login, checkResetToken, resetPassword, refresh} 
