@@ -13,5 +13,5 @@ router.post("/login",login)
 router.post("/reset-password",resetPassword)
 router.post("/send-otp",sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
-router.post("refresh-token",refresh)
+router.post("/refresh-token",refresh)
 module.exports = router;
