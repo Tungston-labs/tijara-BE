@@ -22,7 +22,7 @@ router.post(
       req.uploadFolder = "product-images/"; 
       next();
     },
-    upload.array("images", 4), 
+    upload.array("images", 6), 
    addProduct
   );
   router.get("/get-products", jwtAuthentication, allowAdminOrSeller, getAllProducts);

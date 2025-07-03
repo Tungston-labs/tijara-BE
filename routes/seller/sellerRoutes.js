@@ -1,7 +1,7 @@
 const express=require("express");
 const router=express.Router();
 const upload=require("../../middleware/upload");
-const { registerSeller, loginSeller, resetPassword,checkResetToken, editSeller, getSellerProfile } = require("../../controllers/seller/sellerController");
+const { registerSeller,checkResetToken, editSeller, getSellerProfile } = require("../../controllers/seller/sellerController");
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const compressUploadedImages = require("../../middleware/imageCompressor");

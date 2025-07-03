@@ -1,11 +1,9 @@
 const User = require("../../models/User");
-const { sendOTP,verifyOTP } = require("../../services/twilio");
+const { sendOTP, verifyOTP } = require("../../services/twilio");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-
-
-const { isValidNumber, parsePhoneNumber } = require('libphonenumber-js');
+const { isValidNumber, parsePhoneNumber } = require("libphonenumber-js");
 
 const sendOtpController = async (req, res) => {
   const { phone } = req.body;
@@ -19,7 +17,9 @@ const sendOtpController = async (req, res) => {
 
     const validCountries = ["IN", "AE"];
     if (!validCountries.includes(phoneNumber.country)) {
-      return res.status(400).json({ message: "Only India and UAE numbers are supported" });
+      return res
+        .status(400)
+        .json({ message: "Only India and UAE numbers are supported" });
     }
 
     const user = await User.findOne({ phone });
@@ -27,12 +27,10 @@ const sendOtpController = async (req, res) => {
 
     await sendOTP(phoneNumber.number); // Always send in E.164 format
     res.status(200).json({ message: "OTP sent successfully" });
-
   } catch (err) {
     res.status(400).json({ message: "Invalid phone number" });
   }
 };
-
 
 const verifyOtpController = async (req, res) => {
   const { phone, code } = req.body;
@@ -43,9 +41,13 @@ const verifyOtpController = async (req, res) => {
   }
 
   const user = await User.findOne({ phone });
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "1d",
-  });
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: "1d",
+    }
+  );
 
   res.status(200).json({ token, user });
 };
@@ -93,16 +95,16 @@ const login = async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
       message: "Login successful",
       _id: user._id,
-      name: user.name, 
+      name: user.name,
       accessToken,
       role: user.role,
-      image:user.profileImage
+      image: user.profileImage,
     });
   } catch (error) {
     next(error);
@@ -227,5 +229,11 @@ const refresh = async (req, res) => {
   }
 };
 
-
-module.exports={sendOtpController, verifyOtpController, login, checkResetToken, resetPassword, refresh} 
+module.exports = {
+  sendOtpController,
+  verifyOtpController,
+  login,
+  checkResetToken,
+  resetPassword,
+  refresh,
+};

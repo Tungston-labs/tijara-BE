@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     } else if (file.fieldname === "tradeLicenseCopy") {
       folder = "uploads/licenses";
     } else if (req.uploadFolder) {
-      folder = req.uploadFolder; // Optional route override
+      folder = req.uploadFolder;
     }
 
     const dir = path.join(__dirname, "..", folder);
