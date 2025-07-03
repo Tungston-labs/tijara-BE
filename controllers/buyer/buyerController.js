@@ -44,9 +44,8 @@ const reverseGeocode = async (latitude, longitude) => {
 
 const registerBuyer = async (req, res, next) => {
   try {
-    const { name, email, password, locationId, coords, country } =
-      req.body;
-        let phone = req.body.phone;
+    const { name, email, password, locationId, coords, country } = req.body;
+    let phone = req.body.phone;
 
     const profileImage = req.files?.profileImage?.[0]?.filename
       ? `${req.protocol}://${req.get("host")}/uploads/users/buyers/${
@@ -170,6 +169,15 @@ const registerBuyer = async (req, res, next) => {
 
     const { password: _, ...buyerData } = newBuyer.toObject();
 
+    // ⛔ Don't issue tokens unless approved
+    if (buyerData.status !== "approved") {
+      return res.status(201).json({
+        message: "Signed up successfully. Awaiting approval.",
+        status: buyerData.status,
+      });
+    }
+
+    // ✅ Issue tokens only for approved users
     const accessToken = jwt.sign(
       { id: buyerData._id, email: buyerData.email, role: buyerData.role },
       process.env.ACCESS_TOKEN_SECRET,
@@ -190,11 +198,12 @@ const registerBuyer = async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: "Signed up successful",
+      message: "Signed up successfully",
       _id: buyerData._id,
       name: buyerData.name,
       accessToken,
       role: buyerData.role,
+      status: buyerData.status,
     });
   } catch (error) {
     next(error);
