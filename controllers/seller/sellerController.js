@@ -186,13 +186,18 @@ const registerSeller = async (req, res, next) => {
 
     const { password: _, ...sellerData } = newSeller.toObject();
 
-    if (sellerData.status !== "approved") {
-      return res.status(201).json({
-        message: "Signed up successfully. Awaiting admin approval.",
-        status: sellerData.status,
-      });
-    }
-
+ if (sellerData.status === "pending") {
+  return res.status(201).json({
+    message: "Signed up successfully. Awaiting approval.",
+    user: {
+      _id: sellerData._id,
+      name: sellerData.name,
+      email: sellerData.email,
+      role: sellerData.role,
+      status: sellerData.status,
+    },
+  });
+}
     const accessToken = jwt.sign(
       { id: sellerData._id, email: sellerData.email, role: sellerData.role },
       process.env.ACCESS_TOKEN_SECRET,
