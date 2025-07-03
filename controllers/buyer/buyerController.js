@@ -169,7 +169,6 @@ const registerBuyer = async (req, res, next) => {
 
     const { password: _, ...buyerData } = newBuyer.toObject();
 
-    // ⛔ Don't issue tokens unless approved
     if (buyerData.status !== "approved") {
       return res.status(201).json({
         message: "Signed up successfully. Awaiting approval.",
@@ -177,7 +176,6 @@ const registerBuyer = async (req, res, next) => {
       });
     }
 
-    // ✅ Issue tokens only for approved users
     const accessToken = jwt.sign(
       { id: buyerData._id, email: buyerData.email, role: buyerData.role },
       process.env.ACCESS_TOKEN_SECRET,
