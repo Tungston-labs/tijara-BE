@@ -189,7 +189,7 @@ const refresh = async (req, res) => {
   try {
     const cookies = req.cookies;
     if (!cookies?.jwt) {
-      return res.status(401).json({ message: "Unauthorized, please login" });
+      return res.status(401).json({ message: "Unauthorized, Your account is not yet verified" });
     }
 
     const refreshToken = cookies.jwt;
