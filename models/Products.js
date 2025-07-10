@@ -61,5 +61,7 @@ const productSchema = new mongoose.Schema(
 function arrayLimit(val) {
   return val.length >= 1; // Enforce minimum 1 image
 }
+productSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 }); // 7 days
+
 
 module.exports = mongoose.model("Product", productSchema);

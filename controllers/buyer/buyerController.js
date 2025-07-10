@@ -208,6 +208,7 @@ if (newBuyer.status === "pending") {
       accessToken,
       role: buyerData.role,
       status: buyerData.status,
+      
     });
   } catch (error) {
     next(error);
