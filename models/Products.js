@@ -61,7 +61,7 @@ const productSchema = new mongoose.Schema(
 function arrayLimit(val) {
   return val.length >= 1; 
 }
-productSchema.index({ createdAt: 1 }, {  expireAfterSeconds: 7 * 24 * 60 * 60 }); 
+// productSchema.index({ createdAt: 1 }, {  expireAfterSeconds: 7 * 24 * 60 * 60 }); 
 
 
 module.exports = mongoose.model("Product", productSchema);
