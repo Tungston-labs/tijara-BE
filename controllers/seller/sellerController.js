@@ -297,7 +297,6 @@ const getSellerProfile = async (req, res) => {
   res.status(200).json({ seller });
 };
 module.exports = {
-  registerSeller,
   checkResetToken,
   editSeller,
   getSellerProfile,
