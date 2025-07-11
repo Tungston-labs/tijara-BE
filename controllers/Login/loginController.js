@@ -1,8 +1,10 @@
 const User = require("../../models/User");
+const validator = require("validator")
 const { sendOTP, verifyOTP } = require("../../services/twilio");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
+const Location = require("../../models/Location");
+const axios = require("axios");
 const { isValidNumber, parsePhoneNumber } = require("libphonenumber-js");
 
 const sendOtpController = async (req, res) => {
@@ -189,7 +191,9 @@ const refresh = async (req, res) => {
   try {
     const cookies = req.cookies;
     if (!cookies?.jwt) {
-      return res.status(401).json({ message: "Unauthorized, Your account is not yet verified" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized, Your account is not yet verified" });
     }
 
     const refreshToken = cookies.jwt;
@@ -229,11 +233,306 @@ const refresh = async (req, res) => {
   }
 };
 
+const usernameRegex = /^[a-zA-Z0-9_ ]{3,50}$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+
+const phoneRegex =
+  /^(\+91[6-9]\d{9}|\+9715\d{8}|\+9665\d{8}|\+9689\d{7}|\+974[3567]\d{7}|\+9733\d{7}|\+965[569]\d{7})$/;
+const reverseGeocode = async (latitude, longitude) => {
+  const apiKey = process.env.OPENCAGE_API_KEY;
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
+
+  const response = await axios.get(url);
+  const result = response.data?.results?.[0];
+  const components = result?.components || {};
+
+  console.log("Geocode components:", components);
+
+  const name =
+    components.suburb ||
+    components.hamlet ||
+    components.neighbourhood ||
+    components.village ||
+    components.town ||
+    components.city_district ||
+    components.city ||
+    components.state_district ||
+    result?.formatted ||
+    components.country ||
+    "Unknown Location";
+
+  return {
+    address: name,
+    country: components.country || "Unknown",
+  };
+};
+
+const registerUser = async (req, res, next) => {
+  try {
+    const { name, email, password, locationId, coords, country } = req.body;
+    let phone = req.body.phone;
+
+    const profileImage = req.files?.profileImage?.[0]?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/users/${
+          req.files.profileImage[0].filename
+        }`
+      : null;
+
+    if (!name || !phone || !email || !password || (!locationId && !coords)) {
+      return res.status(400).json({
+        message:
+          "All fields are required including location or coordinates and profile image",
+      });
+    }
+
+    if (!phone.startsWith("+")) {
+      phone = "+" + phone;
+    }
+
+    if (!usernameRegex.test(name)) {
+      return res.status(400).json({
+        message: "Name must be 3-50 characters, letters/numbers only.",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        message:
+          "Invalid phone number. Must be valid for India or GCC with country code.",
+      });
+    }
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must include uppercase, lowercase, number, special char.",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered." });
+    }
+
+    let resolvedLocationId;
+
+    if (locationId) {
+      const location = await Location.findById(locationId);
+      if (!location)
+        return res.status(400).json({ message: "Invalid location ID." });
+      resolvedLocationId = location._id;
+    } else if (coords) {
+      let latitude, longitude;
+
+      if (typeof coords === "string") {
+        try {
+          const parsed = JSON.parse(coords);
+          latitude = parseFloat(parsed.latitude);
+          longitude = parseFloat(parsed.longitude);
+        } catch (err) {
+          return res
+            .status(400)
+            .json({ message: "Coordinates must be a valid JSON object." });
+        }
+      } else {
+        latitude = parseFloat(coords.latitude);
+        longitude = parseFloat(coords.longitude);
+      }
+
+      if (typeof latitude !== "number" || typeof longitude !== "number") {
+        return res.status(400).json({ message: "Invalid coordinates." });
+      }
+
+      const nearest = await Location.findOne({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude],
+            },
+            $maxDistance: 50000, // 50km
+          },
+        },
+      });
+
+      if (nearest) {
+        resolvedLocationId = nearest._id;
+      } else {
+        const { address, country } = await reverseGeocode(latitude, longitude);
+        const newLocation = new Location({
+          country,
+          location: {
+            type: "Point",
+            coordinates: [longitude, latitude],
+          },
+          name: address,
+        });
+
+        await newLocation.save();
+        resolvedLocationId = newLocation._id;
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      name,
+      phone,
+      email,
+      password: hashedPassword,
+      profileImage,
+      role: "buyer", // default role for everyone
+      tradeLicenseStatus: "No", // default for everyone
+      location: resolvedLocationId,
+    });
+
+    await newUser.save();
+
+    const { password: _, ...userData } = newUser.toObject();
+
+    if (newUser.status === "pending") {
+      return res.status(201).json({
+        message: "Signed up successfully. Awaiting approval.",
+        user: {
+          _id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          status: newUser.status,
+        },
+      });
+    }
+
+    const accessToken = jwt.sign(
+      { id: userData._id, email: userData.email, role: userData.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: userData._id, email: userData.email, role: userData.role },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      message: "Signed up successfully",
+      _id: userData._id,
+      name: userData.name,
+      accessToken,
+      role: userData.role,
+      status: userData.status,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addTradeLicenseDetails = async (req, res, next) => {
+  try {
+    const { companyName, tradeLicenseNumber, managerName, tradeLicenseExpiry } =
+      req.body;
+    const userId = req.user.id; // Assumes you're using auth middleware to attach req.user
+
+    // Upload path
+    const tradeLicensePath = req.files?.tradeLicenseCopy?.[0]?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/licenses/${
+          req.files.tradeLicenseCopy[0].filename
+        }`
+      : null;
+
+    // Validation
+    if (
+      !companyName ||
+      !tradeLicenseNumber ||
+      !managerName ||
+      !tradeLicenseExpiry ||
+      !tradeLicensePath
+    ) {
+      return res.status(400).json({
+        message:
+          "All fields including company name, trade license number, expiry, copy, and manager name are required",
+      });
+    }
+
+    // Optional: validate formats
+    const licenseNumberRegex = /^[A-Z0-9\-]{5,}$/; // Adjust as per real rules
+    const nameRegex = /^[a-zA-Z\s.]{3,}$/;
+
+    if (!nameRegex.test(companyName))
+      return res.status(400).json({ message: "Invalid company name format" });
+
+    if (!licenseNumberRegex.test(tradeLicenseNumber))
+      return res
+        .status(400)
+        .json({ message: "Invalid trade license number format" });
+
+    if (!nameRegex.test(managerName))
+      return res.status(400).json({ message: "Invalid manager name format" });
+
+    const expiryDate = new Date(tradeLicenseExpiry);
+    if (isNaN(expiryDate.getTime()) || expiryDate <= new Date()) {
+      return res
+        .status(400)
+        .json({ message: "Trade license expiry must be a valid future date" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Check if already a seller
+    if (user.tradeLicenseStatus === "Yes") {
+      return res
+        .status(400)
+        .json({ message: "Trade license already submitted" });
+    }
+
+    // Update user with trade license details
+    user.companyName = companyName;
+    user.tradeLicenseNumber = tradeLicenseNumber;
+    user.managerName = managerName;
+    user.tradeLicenseCopy = tradeLicensePath;
+    user.tradeLicenseExpiry = expiryDate;
+    user.tradeLicenseStatus = "Yes";
+    user.role = "seller";
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Trade license details added successfully. You're now a seller.",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tradeLicenseStatus: user.tradeLicenseStatus,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  registerUser,
   sendOtpController,
   verifyOtpController,
   login,
   checkResetToken,
   resetPassword,
   refresh,
+  addTradeLicenseDetails
 };
