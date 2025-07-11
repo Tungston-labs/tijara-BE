@@ -10,12 +10,12 @@ const compressUploadedImages = require("../../middleware/imageCompressor");
 router.post("/refresh",refresh);
 
 
-router.post("/seller-register",  upload.fields([
-    { name: "profileImage", maxCount: 1 },
-    { name: "tradeLicenseCopy", maxCount: 1 },
-  ]),compressUploadedImages,
-  registerSeller
-);
+// router.post("/seller-register",  upload.fields([
+//     { name: "profileImage", maxCount: 1 },
+//     { name: "tradeLicenseCopy", maxCount: 1 },
+//   ]),compressUploadedImages,
+//   registerSeller
+// );
 router.post("/refresh-seller", refresh)
 router.put("/edit/:id", jwtAuthentication, upload.fields([
     { name: "profileImage", maxCount: 1 },
