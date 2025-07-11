@@ -4,21 +4,21 @@ const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let folder = "uploads/misc"; // Default
+    let folder = "uploads/misc"; // Default fallback
 
-    // Determine folder based on field name and URL or user role
-    if (file.fieldname === "profileImage") {
-      if (req.originalUrl.includes("buyer")) {
-        folder = "uploads/users/buyers"; // Clean structure
-      } else if (req.originalUrl.includes("seller")) {
-        folder = "uploads/users/sellers";
-      }
-    } else if (file.fieldname === "images") {
-      folder = "uploads/products";
-    } else if (file.fieldname === "tradeLicenseCopy") {
-      folder = "uploads/licenses";
-    } else if (req.uploadFolder) {
-      folder = req.uploadFolder;
+    switch (file.fieldname) {
+      case "profileImage":
+        folder = "uploads/users";
+        break;
+      case "images":
+        folder = "uploads/products";
+        break;
+      case "tradeLicenseCopy":
+        folder = "uploads/licenses";
+        break;
+      default:
+        if (req.uploadFolder) folder = req.uploadFolder;
+        break;
     }
 
     const dir = path.join(__dirname, "..", folder);
@@ -34,11 +34,17 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf",  "image/heic"];
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "image/heic",
+    "application/pdf"
+  ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, PNG, JPG, and PDF files are allowed"), false);
+    cb(new Error("Only JPEG, PNG, JPG, HEIC, and PDF files are allowed"), false);
   }
 };
 

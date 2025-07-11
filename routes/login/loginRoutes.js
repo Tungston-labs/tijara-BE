@@ -14,12 +14,10 @@ router.post(
   registerUser
 );
 router.put("/add-trade-license", jwtAuthentication, upload.fields([{ name: "tradeLicenseCopy", maxCount: 1 }]), addTradeLicenseDetails);
-
 router.post("/login/send-otp", sendOtpController);
 router.post("/login/verify-otp", verifyOtpController);
 router.post("/check-status",checkUserStatus)
 router.get("/check-reset-token", checkResetToken);
-router.post("add-trade-license", jwtAuthentication ,upload.fields([{ name: "tradeLicenseCopy", maxCount: 1 }]), addTradeLicenseDetails)
 router.post("/login",login)
 router.post("/reset-password",resetPassword)
 router.post("/send-otp",sendOtpForPasswordReset);
