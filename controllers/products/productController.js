@@ -212,16 +212,10 @@ const updateProduct = async (req, res, next) => {
       priceINR,
       priceUSD,
       expiryDate,
-      existingImages, // Comes as JSON string
+      existingImages, // JSON string
     } = req.body;
 
     const { id: userId, role } = req.user;
-
-    const pricePerKg = {
-      ...(priceAED && { AED: parseFloat(priceAED) }),
-      ...(priceINR && { INR: parseFloat(priceINR) }),
-      ...(priceUSD && { USD: parseFloat(priceUSD) }),
-    };
 
     if (expiryDate && new Date(expiryDate) <= new Date()) {
       return res
@@ -233,30 +227,21 @@ const updateProduct = async (req, res, next) => {
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     if (role === "seller" && String(product.addedBy) !== userId) {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized to update this product." });
+      return res.status(403).json({ message: "Unauthorized to update this product." });
     }
 
-    // Parse retained image URLs from frontend
     const existing = existingImages ? JSON.parse(existingImages) : [];
-
-    // Identify which images to delete
     const oldImageUrls = product.images || [];
-    const removedImageUrls = oldImageUrls.filter(
-      (url) => !existing.includes(url)
-    );
+    const removedImageUrls = oldImageUrls.filter((url) => !existing.includes(url));
 
-    // Add new uploaded images
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const newImagePaths =
-      req.files?.map(
-        (file) => `${baseUrl}/uploads/products/${file.filename}`
-      ) || [];
+    const newImagePaths = req.files?.map(
+      (file) => `${baseUrl}/uploads/products/${file.filename}`
+    ) || [];
 
     const finalImages = [...existing, ...newImagePaths];
 
-    // Update fields
+    // Update basic fields
     product.itemCategory = itemCategory || product.itemCategory;
     product.itemName = itemName || product.itemName;
     product.itemSubCategory = itemSubCategory || product.itemSubCategory;
@@ -264,30 +249,50 @@ const updateProduct = async (req, res, next) => {
     product.expiryDate = expiryDate || product.expiryDate;
     product.availableKg = availableKg || product.availableKg;
     product.description = description || product.description;
-    product.pricePerKg = Object.keys(pricePerKg).length
-      ? pricePerKg
-      : product.pricePerKg;
     product.images = finalImages;
+
+    // ✅ Price logic: update only fields sent
+    if (priceAED !== undefined) {
+      if (priceAED === "") {
+        product.pricePerKg.delete("AED");
+      } else {
+        product.pricePerKg.set("AED", parseFloat(priceAED));
+      }
+    }
+
+    if (priceINR !== undefined) {
+      if (priceINR === "") {
+        product.pricePerKg.delete("INR");
+      } else {
+        product.pricePerKg.set("INR", parseFloat(priceINR));
+      }
+    }
+
+    if (priceUSD !== undefined) {
+      if (priceUSD === "") {
+        product.pricePerKg.delete("USD");
+      } else {
+        product.pricePerKg.set("USD", parseFloat(priceUSD));
+      }
+    }
 
     await product.save();
 
-   removedImageUrls.forEach((url) => {
-  try {
-    const filename = path.basename(url); // safer extraction
-    const filePath = path.join(__dirname, "..", "..", "uploads", "products", filename);
-
-    console.log("Resolved file path for deletion:", filePath);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log("✅ Deleted file:", filePath);
-    } else {
-      console.warn("⚠️ File not found:", filePath);
-    }
-  } catch (err) {
-    console.error("❌ Error deleting image:", err);
-  }
-});
+    // Delete removed images
+    removedImageUrls.forEach((url) => {
+      try {
+        const filename = path.basename(url);
+        const filePath = path.join(__dirname, "..", "..", "uploads", "products", filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log("✅ Deleted file:", filePath);
+        } else {
+          console.warn("⚠️ File not found:", filePath);
+        }
+      } catch (err) {
+        console.error("❌ Error deleting image:", err);
+      }
+    });
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
@@ -295,7 +300,6 @@ const updateProduct = async (req, res, next) => {
     next(error);
   }
 };
-
 // Delete product
 const deleteProduct = async (req, res, next) => {
   try {
