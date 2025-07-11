@@ -5,6 +5,7 @@ const { sendOtpForPasswordReset, verifyOtpForPasswordReset } = require("../../co
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
 const router = express.Router();
+const compressUploadedImages = require("../../middleware/imageCompressor");
 
 router.post(
   "/user-sign-up",
