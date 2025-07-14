@@ -712,7 +712,54 @@ const checkUserStatus = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+const verifyTradeLicense = async (req, res) => {
+  const { userId } = req.params;
+  const { action } = req.body; // "approve" or "reject"
 
+  if (!["approve", "reject"].includes(action)) {
+    return res.status(400).json({ message: "Invalid action. Must be 'approve' or 'reject'." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.tradeLicenseStatus === "not_uploaded") {
+      return res.status(400).json({ message: "User has not uploaded trade license details." });
+    }
+
+    // Optional: check expiry logic before approving
+    if (action === "approve") {
+      if (!user.tradeLicenseExpiry || new Date(user.tradeLicenseExpiry) < new Date()) {
+        return res.status(400).json({ message: "Cannot approve expired trade license." });
+      }
+
+      user.tradeLicenseStatus = "approved";
+      user.role = "seller";
+    } else {
+      user.tradeLicenseStatus = "rejected";
+      user.role = "buyer"; // fallback
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: `User's trade license ${action}d successfully.`,
+      user: {
+        _id: user._id,
+        role: user.role,
+        tradeLicenseStatus: user.tradeLicenseStatus,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.error("Error verifying trade license:", error.message);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 module.exports = {
   signUp,
   Login,
@@ -730,5 +777,6 @@ module.exports = {
   updatePlan,
   deletePlan,
   editUserByAdmin,
+  verifyTradeLicense,
   checkUserStatus,
 };

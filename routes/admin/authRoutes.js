@@ -1,5 +1,5 @@
 const express=require("express");
-const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin}=require("../../controllers/admin/authController");
+const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense}=require("../../controllers/admin/authController");
 const router=express.Router();
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
@@ -28,6 +28,7 @@ router.post("/addseller",jwtAuthentication, verifyAdmin, upload.fields([
   ]), compressUploadedImages,addSellerByAdmin);
 router.post("/addbuyer",jwtAuthentication, upload.single("profileImage"),compressUploadedImages, verifyAdmin, addBuyerByAdmin);
 router.post("/verify-user", jwtAuthentication, verifyAdmin, updateUserStatus) ;
+router.put("/verify-trade-License/:userId", jwtAuthentication,verifyAdmin, verifyTradeLicense);
 router.get("/get-all-users", jwtAuthentication,verifyAdmin, getAllUsers);
 router.get("/get-user/:role/:id", jwtAuthentication, verifyAdmin, getUserById);
 router.post("/verify-user", jwtAuthentication,verifyAdmin, updateUserStatus);
