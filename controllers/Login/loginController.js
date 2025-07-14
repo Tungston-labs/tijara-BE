@@ -508,7 +508,6 @@ const addTradeLicenseDetails = async (req, res, next) => {
     user.tradeLicenseCopy = tradeLicensePath;
     user.tradeLicenseExpiry = expiryDate;
     user.tradeLicenseStatus = "pending";
-    user.role = "seller";
 
     await user.save();
     const updatedToken = jwt.sign(
