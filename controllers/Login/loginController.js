@@ -535,10 +535,9 @@ const addTradeLicenseDetails = async (req, res, next) => {
     next(error);
   }
 };
-
 const getTradeLicenseStatus = async (req, res, next) => {
   try {
-    const userId = req.user.id; // comes from jwtAuthentication middleware
+    const userId = req.user.id; 
 
     const user = await User.findById(userId).select(
       "name role email tradeLicenseStatus companyName tradeLicenseExpiry managerName"
@@ -546,6 +545,19 @@ const getTradeLicenseStatus = async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check and update if license has expired
+    const today = new Date();
+    if (
+      user.tradeLicenseExpiry &&
+      new Date(user.tradeLicenseExpiry) < today &&
+      user.tradeLicenseStatus === "approved"
+    ) {
+      // Mark as expired only if it was approved earlier
+      user.tradeLicenseStatus = "expired";
+      user.role = "buyer"; // Optionally downgrade role
+      await user.save();
     }
 
     let message = "";

@@ -1,5 +1,5 @@
 const express=require("express");
-const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense}=require("../../controllers/admin/authController");
+const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense, getPendingTradeLicenses}=require("../../controllers/admin/authController");
 const router=express.Router();
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
@@ -34,7 +34,7 @@ router.get("/get-user/:role/:id", jwtAuthentication, verifyAdmin, getUserById);
 router.post("/verify-user", jwtAuthentication,verifyAdmin, updateUserStatus);
 router.get("/unapproved-users", jwtAuthentication,verifyAdmin, getPendingUsersByRole);
 router.delete("/delete-user/:role/:id", jwtAuthentication, verifyAdmin, deleteUser);
-
+router.get("/pending-license", jwtAuthentication, verifyAdmin, getPendingTradeLicenses)
 router.put("/edit-user/:id", upload.fields([
     { name: "tradeLicenseCopy", maxCount: 1 },
     { name: "profileImage", maxCount: 1 },

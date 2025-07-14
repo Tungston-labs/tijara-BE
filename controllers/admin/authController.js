@@ -760,6 +760,32 @@ const verifyTradeLicense = async (req, res) => {
     return res.status(500).json({ message: "Internal server error." });
   }
 };
+const User = require("../models/User"); // Adjust path based on your structure
+
+const getPendingTradeLicenses = async (req, res, next) => {
+  try {
+    const pendingUsers = await User.find({ tradeLicenseStatus: "pending" })
+      .select(
+        "name email phone role tradeLicenseStatus companyName tradeLicenseNumber managerName tradeLicenseCopy tradeLicenseExpiry createdAt"
+      )
+      .sort({ createdAt: -1 }); // Optional: newest first
+
+    if (!pendingUsers || pendingUsers.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No pending trade licenses found.", users: [] });
+    }
+
+    return res.status(200).json({
+      message: "Pending trade license users fetched successfully.",
+      users: pendingUsers,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
   signUp,
   Login,
@@ -777,6 +803,7 @@ module.exports = {
   updatePlan,
   deletePlan,
   editUserByAdmin,
+  getPendingTradeLicenses,
   verifyTradeLicense,
   checkUserStatus,
 };
