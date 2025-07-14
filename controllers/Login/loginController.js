@@ -389,7 +389,7 @@ const registerUser = async (req, res, next) => {
       password: hashedPassword,
       profileImage,
       role: "buyer", // default role for everyone
-      tradeLicenseStatus: "No", // default for everyone
+      tradeLicenseStatus: "not_uploaded",
       location: resolvedLocationId,
     });
 
@@ -529,7 +529,7 @@ const addTradeLicenseDetails = async (req, res, next) => {
         email: user.email,
         role: user.role,
         tradeLicenseStatus: user.tradeLicenseStatus,
-        tradeLicenseExpiry:user.tradeLicenseExpiry
+        tradeLicenseExpiry: user.tradeLicenseExpiry,
       },
     });
   } catch (error) {
