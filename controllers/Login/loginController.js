@@ -510,9 +510,18 @@ const addTradeLicenseDetails = async (req, res, next) => {
     user.role = "seller";
 
     await user.save();
-
+  const updatedToken = jwt.sign(
+  {
+    id: user._id,
+    email: user.email,
+    role: user.role, // now "seller"
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "1h" }
+);
     return res.status(200).json({
       message: "Trade license details added successfully. You're now a seller.",
+      token:updatedToken,
       user: {
         _id: user._id,
         name: user.name,

@@ -4,6 +4,7 @@ const router = express.Router();
 const upload = require("../../middleware/upload");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const {  addProduct, getAllProducts, getProductById, updateProduct, deleteProduct, getItemNames, getSubCategoriesByItemName, getAllProductsForBuyers } = require("../../controllers/products/productController");
+const checkLicenseValidity = require("../../middleware/checkLicenseValidity");
 
 // Middleware to allow only admin or seller
 const allowAdminOrSeller = (req, res, next) => {
@@ -18,6 +19,7 @@ router.post(
     "/add-product",
     jwtAuthentication,
     allowAdminOrSeller,
+    checkLicenseValidity,
     (req, res, next) => {
       req.uploadFolder = "product-images/"; 
       next();
@@ -28,7 +30,7 @@ router.post(
   router.get("/get-products", jwtAuthentication, allowAdminOrSeller, getAllProducts);
   router.get("/get-products-buyer",jwtAuthentication, getAllProductsForBuyers);
   router.get("/get-productsbyid/:id", jwtAuthentication, getProductById);
-  router.put("/update/:id", jwtAuthentication, upload.array("images", 5), allowAdminOrSeller, updateProduct); 
+  router.put("/update/:id", jwtAuthentication, upload.array("images", 5), allowAdminOrSeller,checkLicenseValidity, updateProduct); 
   router.delete("/delete-product/:id",jwtAuthentication, allowAdminOrSeller,deleteProduct)
   router.get("/item-names", jwtAuthentication, allowAdminOrSeller, getItemNames);
   router.get("/item-sub-category/:itemName", jwtAuthentication, allowAdminOrSeller, getSubCategoriesByItemName);
