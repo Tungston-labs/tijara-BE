@@ -1,5 +1,5 @@
 const User = require("../../models/User");
-const validator = require("validator")
+const validator = require("validator");
 const { sendOTP, verifyOTP } = require("../../services/twilio");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -107,8 +107,7 @@ const login = async (req, res, next) => {
       accessToken,
       role: user.role,
       image: user.profileImage,
-      tradeLicenseExpiry:user.tradeLicenseExpiry,
-
+      tradeLicenseExpiry: user.tradeLicenseExpiry,
     });
   } catch (error) {
     next(error);
@@ -508,29 +507,77 @@ const addTradeLicenseDetails = async (req, res, next) => {
     user.managerName = managerName;
     user.tradeLicenseCopy = tradeLicensePath;
     user.tradeLicenseExpiry = expiryDate;
-    user.tradeLicenseStatus = "Yes";
+    user.tradeLicenseStatus = "pending";
     user.role = "seller";
 
     await user.save();
-  const updatedToken = jwt.sign(
-  {
-    id: user._id,
-    email: user.email,
-    role: user.role, // now "seller"
-  },
-  process.env.JWT_SECRET,
-  { expiresIn: "1h" }
-);
+    const updatedToken = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role, // now "seller"
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
     return res.status(200).json({
       message: "Trade license details added successfully. You're now a seller.",
-      token:updatedToken,
+      token: updatedToken,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         tradeLicenseStatus: user.tradeLicenseStatus,
+        tradeLicenseExpiry:user.tradeLicenseExpiry
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const getTradeLicenseStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // comes from jwtAuthentication middleware
+
+    const user = await User.findById(userId).select(
+      "name role email tradeLicenseStatus companyName tradeLicenseExpiry managerName"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    let message = "";
+    switch (user.tradeLicenseStatus) {
+      case "not_uploaded":
+        message = "Trade license not uploaded.";
+        break;
+      case "pending":
+        message = "Trade license is under verification.";
+        break;
+      case "approved":
+        message = "You are an approved seller.";
+        break;
+      case "rejected":
+        message = "Trade license was rejected. Please re-upload.";
+        break;
+      case "expired":
+        message = "Your trade license has expired. Please renew.";
+        break;
+    }
+
+    return res.status(200).json({
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tradeLicenseStatus: user.tradeLicenseStatus,
+        companyName: user.companyName,
+        managerName: user.managerName,
+        tradeLicenseExpiry: user.tradeLicenseExpiry,
+      },
+      message,
     });
   } catch (error) {
     next(error);
@@ -545,5 +592,6 @@ module.exports = {
   checkResetToken,
   resetPassword,
   refresh,
-  addTradeLicenseDetails
+  addTradeLicenseDetails,
+  getTradeLicenseStatus,
 };

@@ -52,11 +52,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    tradeLicenseStatus: {
-      type: String,
-      enum: ["Yes", "No"],
-      default: "No", // No means license details not added yet
-    },
+     tradeLicenseStatus: {
+    type: String,
+    enum: ["not_uploaded", "pending", "approved", "rejected","expired"],
+    default: "not_uploaded",
+  },
 
     managerName: {
       type: String,
