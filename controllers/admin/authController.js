@@ -760,7 +760,6 @@ const verifyTradeLicense = async (req, res) => {
     return res.status(500).json({ message: "Internal server error." });
   }
 };
-const User = require("../models/User"); // Adjust path based on your structure
 
 const getPendingTradeLicenses = async (req, res, next) => {
   try {
