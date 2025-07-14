@@ -517,7 +517,7 @@ const addTradeLicenseDetails = async (req, res, next) => {
         email: user.email,
         role: user.role, // now "seller"
       },
-      process.env.JWT_SECRET,
+      process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" }
     );
     return res.status(200).json({
@@ -536,6 +536,7 @@ const addTradeLicenseDetails = async (req, res, next) => {
     next(error);
   }
 };
+
 const getTradeLicenseStatus = async (req, res, next) => {
   try {
     const userId = req.user.id; // comes from jwtAuthentication middleware
