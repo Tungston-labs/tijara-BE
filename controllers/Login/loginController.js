@@ -107,6 +107,8 @@ const login = async (req, res, next) => {
       accessToken,
       role: user.role,
       image: user.profileImage,
+      tradeLicenseExpiry:user.tradeLicenseExpiry,
+
     });
   } catch (error) {
     next(error);
@@ -493,12 +495,12 @@ const addTradeLicenseDetails = async (req, res, next) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Check if already a seller
-    if (user.tradeLicenseStatus === "Yes") {
-      return res
-        .status(400)
-        .json({ message: "Trade license already submitted" });
-    }
+    // // Check if already a seller
+    // if (user.tradeLicenseStatus === "Yes") {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Trade license already submitted" });
+    // }
 
     // Update user with trade license details
     user.companyName = companyName;
