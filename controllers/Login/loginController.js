@@ -520,7 +520,7 @@ const addTradeLicenseDetails = async (req, res, next) => {
       { expiresIn: "1h" }
     );
     return res.status(200).json({
-      message: "Trade license details added successfully. You're now a seller.",
+      message: "Trade license details added successfully. You're license details is under verification.",
       token: updatedToken,
       user: {
         _id: user._id,
