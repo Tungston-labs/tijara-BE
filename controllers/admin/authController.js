@@ -758,26 +758,45 @@ const verifyTradeLicense = async (req, res) => {
 
 const getPendingTradeLicenses = async (req, res, next) => {
   try {
-    const pendingUsers = await User.find({ tradeLicenseStatus: "pending" })
-      .select(
-        "name email phone role tradeLicenseStatus companyName tradeLicenseNumber managerName tradeLicenseCopy tradeLicenseExpiry createdAt"
-      )
-      .sort({ createdAt: -1 }); // Optional: newest first
+    const { page = 1, limit = 10, search = "" } = req.query;
 
-    if (!pendingUsers || pendingUsers.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No pending trade licenses found.", users: [] });
-    }
+    const query = {
+      tradeLicenseStatus: "pending",
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { companyName: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select(
+          "name email phone role tradeLicenseStatus companyName tradeLicenseNumber managerName tradeLicenseCopy tradeLicenseExpiry createdAt"
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      User.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
 
     return res.status(200).json({
       message: "Pending trade license users fetched successfully.",
-      users: pendingUsers,
+      users,
+      total,
+      totalPages,
+      currentPage: parseInt(page),
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 
 module.exports = {
