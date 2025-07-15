@@ -493,19 +493,11 @@ const getAllUsers = async (req, res, next) => {
 
 const getUserById = async (req, res, next) => {
   try {
-    const { role, id } = req.params;
+    const { id } = req.params;
 
-    if (!["seller", "buyer"].includes(role)) {
-      return res
-        .status(400)
-        .json({ message: "Role must be 'seller' or 'buyer'" });
-    }
-
-    const user = await User.findOne({ _id: id, role });
+    const user = await User.findById(id);
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: `${role} not found with ID: ${id}` });
+      return res.status(404).json({ message: `User not found with ID: ${id}` });
     }
 
     res.status(200).json({ user });
@@ -513,6 +505,7 @@ const getUserById = async (req, res, next) => {
     next(error);
   }
 };
+
 
 //Delete a user
 

@@ -30,7 +30,7 @@ router.post("/addbuyer",jwtAuthentication, upload.single("profileImage"),compres
 router.post("/verify-user", jwtAuthentication, verifyAdmin, updateUserStatus) ;
 router.put("/verify-trade-License/:userId", jwtAuthentication,verifyAdmin, verifyTradeLicense);
 router.get("/get-all-users", jwtAuthentication,verifyAdmin, getAllUsers);
-router.get("/get-user/:role/:id", jwtAuthentication, verifyAdmin, getUserById);
+router.get("/get-user/:id", jwtAuthentication, verifyAdmin, getUserById);
 router.post("/verify-user", jwtAuthentication,verifyAdmin, updateUserStatus);
 router.get("/unapproved-users", jwtAuthentication,verifyAdmin, getPendingUsersByRole);
 router.delete("/delete-user/:role/:id", jwtAuthentication, verifyAdmin, deleteUser);
