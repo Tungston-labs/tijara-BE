@@ -470,8 +470,8 @@ const addTradeLicenseDetails = async (req, res, next) => {
     }
 
     // Optional: validate formats
-    const licenseNumberRegex = /^[A-Z0-9\-]{5,}$/; // Adjust as per real rules
-    const nameRegex = /^[a-zA-Z\s.]{3,}$/;
+    const licenseNumberRegex = /^[A-Za-z0-9\-\/.]{3,}$/;
+    const nameRegex = /^[a-zA-ZÀ-ÿ'.\-\s]{3,}$/;
 
     if (!nameRegex.test(companyName))
       return res.status(400).json({ message: "Invalid company name format" });
@@ -520,7 +520,8 @@ const addTradeLicenseDetails = async (req, res, next) => {
       { expiresIn: "1h" }
     );
     return res.status(200).json({
-      message: "Trade license details added successfully. You're license details is under verification.",
+      message:
+        "Trade license details added successfully. You're license details is under verification.",
       token: updatedToken,
       user: {
         _id: user._id,
@@ -537,7 +538,7 @@ const addTradeLicenseDetails = async (req, res, next) => {
 };
 const getTradeLicenseStatus = async (req, res, next) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     const user = await User.findById(userId).select(
       "name role email tradeLicenseStatus companyName tradeLicenseExpiry managerName"
