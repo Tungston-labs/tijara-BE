@@ -402,9 +402,8 @@ const addSellerByAdmin = async (req, res, next) => {
 };
 
 // Update the user to login
-
 const updateUserStatus = async (req, res) => {
-  const { userId, role, status } = req.body;
+  const { userId, status } = req.body;
 
   if (!["approved", "rejected"].includes(status)) {
     return res
@@ -412,21 +411,24 @@ const updateUserStatus = async (req, res) => {
       .json({ message: "Status must be 'approved' or 'rejected'" });
   }
 
-  const Model = role === "buyer" ? User : role === "seller" ? User : null;
-  if (!Model) {
-    return res.status(400).json({ message: "Invalid role provided" });
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.status = status;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: `User status updated to ${status}`, user });
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
-
-  const user = await Model.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: `${role} not found` });
-  }
-
-  user.status = status;
-  await user.save();
-
-  res.status(200).json({ message: `${role} status updated to ${status}` });
 };
+
 
 const getAllUsers = async (req, res, next) => {
   try {
