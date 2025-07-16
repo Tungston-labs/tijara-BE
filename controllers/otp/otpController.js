@@ -21,7 +21,7 @@ const sendOtpForPasswordReset = async (req, res, next) => {
     await Otp.create({ otp, email });
 
     // TODO: Send OTP via email service here
-    console.log(`OTP for ${email}:`, otp); // For dev only
+    // console.log(`OTP for ${email}:`, otp); // For dev only
 
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
