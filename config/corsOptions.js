@@ -1,4 +1,4 @@
-const allowedOrigins = ["http://localhost:5173","https://api.thijara.me"];
+const allowedOrigins = ["http://localhost:5173","https://admin.thijara.me"];
 
 const corsOptions = {
   origin: (origin, callback) => {
