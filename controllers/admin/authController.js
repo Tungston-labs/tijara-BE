@@ -139,6 +139,20 @@ const Login = async (req, res, next) => {
   }
 };
 
+
+const logOut = async (req, res) => {
+  const cookies = req.cookies;
+  if (!cookies?.jwt) {
+    return res.sendStatus(204);
+  }
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  });
+  res.json({ message: "cookie cleared and logOut" });
+};
+
 //Get user counts
 
 const getUserCounts = async (req, res, next) => {
@@ -212,7 +226,7 @@ const resetPassword = async (req, res, next) => {
       error.statusCode = 401;
       throw error;
     }
-
+  
     // Password validation regex (adjust according to your requirements)
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
@@ -802,6 +816,7 @@ const getPendingTradeLicenses = async (req, res, next) => {
 module.exports = {
   signUp,
   Login,
+  logOut,
   checkResetToken,
   resetPassword,
   updateUserStatus,
