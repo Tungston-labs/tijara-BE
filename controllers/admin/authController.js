@@ -147,7 +147,7 @@ const logOut = async (req, res) => {
   }
   res.clearCookie("jwt", {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "lax",
   });
   res.json({ message: "cookie cleared and logOut" });
