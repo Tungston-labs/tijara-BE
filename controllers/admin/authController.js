@@ -5,6 +5,7 @@ const validator = require("validator");
 const SubscriptionHistory = require("../../models/SubscriptionHistory");
 const User = require("../../models/User");
 const userModels = require("../../utils/userModals");
+const Product=require("../../models/Products");
 const SubscriptionPlan = require("../../models/SubscriptionPlan");
 const {
   validateName,
@@ -157,20 +158,42 @@ const logOut = async (req, res) => {
 
 const getUserCounts = async (req, res, next) => {
   try {
-    const [totalBuyers, pendingBuyers, totalSellers, pendingSellers] =
-      await Promise.all([
-        User.countDocuments({ role: "buyer" }),
-        User.countDocuments({ role: "buyer", status: "pending" }),
-        User.countDocuments({ role: "seller" }),
-        User.countDocuments({ role: "seller", status: "pending" }),
-      ]);
-
-    return res.status(200).json({
+    const [
       totalBuyers,
       pendingBuyers,
-      totalSellers,
+      tradeLicenseSellers,
       pendingSellers,
-      pendingApprovals: pendingBuyers + pendingSellers,
+      uniqueCategories,
+      uniqueSubCategories,
+    ] = await Promise.all([
+
+      User.countDocuments({ role: "buyer" }),
+
+      // Pending buyers
+      User.countDocuments({ role: "buyer", status: "pending" }),
+
+      // Sellers with trade license (assumed field: tradeLicenseNumber)
+      User.countDocuments({
+        role: "seller",
+        tradeLicenseNumber: { $exists: true, $ne: "" }, // or adjust field as needed
+      }),
+
+      // Pending sellers
+      User.countDocuments({ role: "seller", status: "pending" }),
+
+      // Unique Categories
+      Product.distinct("itemName"),
+
+      // Unique Subcategories
+      Product.distinct("itemSubCategory"),
+    ]);
+
+    return res.status(200).json({
+      buyer: totalBuyers,
+      seller: tradeLicenseSellers,
+      approval: pendingBuyers + pendingSellers,
+      category: uniqueCategories.length,
+      subcategory: uniqueSubCategories.length,
     });
   } catch (error) {
     next(error);
@@ -811,6 +834,78 @@ const getPendingTradeLicenses = async (req, res, next) => {
   }
 };
 
+// Get Monthly Status
+
+const getMonthlyBuyerSellerStats = async (req, res) => {
+  try {
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+
+    const users = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfYear },
+        },
+      },
+      {
+        $project: {
+          month: { $month: "$createdAt" }, // 1 to 12
+          role: 1,
+          status: 1,
+          tradeLicenseStatus: 1,
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          buyer: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ["$role", "buyer"] }, { $eq: ["$status", "approved"] }] },
+                1,
+                0,
+              ],
+            },
+          },
+          seller: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$role", "seller"] },
+                    { $ne: ["$tradeLicenseStatus", "expired"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // Initialize array with all 12 months
+    const fullData = monthNames.map((month, index) => ({
+      month,
+      buyer: 0,
+      seller: 0,
+    }));
+
+    // Merge actual results into the fullData array
+    users.forEach((entry) => {
+      const monthIndex = entry._id - 1; // Mongo returns 1-based month (1 = Jan)
+      fullData[monthIndex].buyer = entry.buyer;
+      fullData[monthIndex].seller = entry.seller;
+    });
+
+    res.status(200).json(fullData);
+  } catch (err) {
+    console.error("Error in getMonthlyBuyerSellerStats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 module.exports = {
@@ -824,7 +919,8 @@ module.exports = {
   getUserById,
   deleteUser,
   addSellerByAdmin,
-  addBuyerByAdmin,
+getMonthlyBuyerSellerStats,
+addBuyerByAdmin,
   getUserCounts,
   getPendingUsersByRole,
   createSubscriptionPlan,

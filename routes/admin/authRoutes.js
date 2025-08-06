@@ -1,5 +1,5 @@
 const express=require("express");
-const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense, getPendingTradeLicenses, logOut}=require("../../controllers/admin/authController");
+const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getMonthlyBuyerSellerStats, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense, getPendingTradeLicenses, logOut}=require("../../controllers/admin/authController");
 const router=express.Router();
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
 const { refresh } = require("../../controllers/refresh/globalRefreshController");
@@ -18,7 +18,7 @@ const verifyAdmin = (req, res, next) => {
     next();
   };
 router.post("/logout",logOut)
-
+router.get("/monthly-stats", jwtAuthentication,verifyAdmin, getMonthlyBuyerSellerStats);
 router.post("/admin-reset-password", resetPassword);
 router.post("/send-otp", sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
