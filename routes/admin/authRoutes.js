@@ -2,14 +2,14 @@ const express=require("express");
 const {signUp, Login,checkResetToken, resetPassword, updateUserStatus, getAllUsers, getUserById, deleteUser, addSellerByAdmin, addBuyerByAdmin, getMonthlyBuyerSellerStats, getUserCounts, getPendingUsersByRole, editUserByAdmin, verifyTradeLicense, getPendingTradeLicenses, logOut}=require("../../controllers/admin/authController");
 const router=express.Router();
 const {sendOtpForPasswordReset,verifyOtpForPasswordReset}=require('../../controllers/otp/otpController')
-const { refresh } = require("../../controllers/refresh/globalRefreshController");
+const { refresh: adminRefresh } = require("../../controllers/refresh/globalRefreshController");
 const jwtAuthentication = require("../../middleware/jwtAuthentication");
 const upload=require("../../middleware/upload");
 const compressUploadedImages = require("../../middleware/imageCompressor");
 
 router.post('/signup',signUp);
 router.post('/adminlogin',Login);
-router.post("/refresh",refresh);
+router.post("/refresh",adminRefresh);
 
 const verifyAdmin = (req, res, next) => {
     if (req.user.role !== "admin") {

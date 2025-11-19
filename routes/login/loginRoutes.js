@@ -5,7 +5,7 @@ const {
   login,
   resetPassword,
   checkResetToken,
-  refresh,
+  refresh: userRefresh,
   addTradeLicenseDetails,
   registerUser,
   getTradeLicenseStatus,
@@ -41,5 +41,5 @@ router.post("/login", login);
 router.post("/reset-password", resetPassword);
 router.post("/send-otp", sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
-router.post("/refresh-token", refresh);
+router.post("/refresh-token", userRefresh);
 module.exports = router;
