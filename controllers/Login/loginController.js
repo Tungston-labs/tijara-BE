@@ -144,6 +144,7 @@ const checkResetToken = async (req, res, next) => {
     next(error);
   }
 };
+//controller for delete account
 const deleteAccountController = async (req, res, next) => {
   try {
     const userId = req.user._id;
