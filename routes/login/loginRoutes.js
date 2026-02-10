@@ -10,6 +10,7 @@ const {
   registerUser,
   getTradeLicenseStatus,
   deleteAccountController,
+  refresh,
 } = require("../../controllers/Login/loginController");
 const { checkUserStatus } = require("../../controllers/admin/authController");
 const {
