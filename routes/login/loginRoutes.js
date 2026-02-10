@@ -9,6 +9,7 @@ const {
   addTradeLicenseDetails,
   registerUser,
   getTradeLicenseStatus,
+  deleteAccountController,
 } = require("../../controllers/Login/loginController");
 const { checkUserStatus } = require("../../controllers/admin/authController");
 const {
@@ -41,5 +42,7 @@ router.post("/login", login);
 router.post("/reset-password", resetPassword);
 router.post("/send-otp", sendOtpForPasswordReset);
 router.post("/verify-otp", verifyOtpForPasswordReset);
-router.post("/refresh-token", userRefresh);
+router.post("/refresh-token", refresh);
+router.delete("/delete-account", jwtAuthentication, deleteAccountController);
+
 module.exports = router;

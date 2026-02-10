@@ -144,6 +144,22 @@ const checkResetToken = async (req, res, next) => {
     next(error);
   }
 };
+const deleteAccountController = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    await Location.deleteMany({ user: userId });
+
+
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const resetPassword = async (req, res, next) => {
   try {
@@ -603,6 +619,7 @@ module.exports = {
   verifyOtpController,
   login,
   checkResetToken,
+  deleteAccountController,
   resetPassword,
   refresh,
   addTradeLicenseDetails,
