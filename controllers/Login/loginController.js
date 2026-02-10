@@ -298,10 +298,9 @@ const registerUser = async (req, res, next) => {
         }`
       : null;
 
-    if (!name || !phone || !email || !password || (!locationId && !coords)) {
+    if (!name || !phone || !email || !password) {
       return res.status(400).json({
-        message:
-          "All fields are required including location or coordinates and profile image",
+        message: "Name, phone, email, and password are required.",
       });
     }
 
@@ -338,7 +337,8 @@ const registerUser = async (req, res, next) => {
       return res.status(400).json({ message: "Email already registered." });
     }
 
-    let resolvedLocationId;
+    // Optional location handling
+    let resolvedLocationId = null;
 
     if (locationId) {
       const location = await Location.findById(locationId);
@@ -363,57 +363,52 @@ const registerUser = async (req, res, next) => {
         longitude = parseFloat(coords.longitude);
       }
 
-      if (typeof latitude !== "number" || typeof longitude !== "number") {
-        return res.status(400).json({ message: "Invalid coordinates." });
-      }
-
-      const nearest = await Location.findOne({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-            $maxDistance: 50000, // 50km
-          },
-        },
-      });
-
-      if (nearest) {
-        resolvedLocationId = nearest._id;
-      } else {
-        const { address, country } = await reverseGeocode(latitude, longitude);
-        const newLocation = new Location({
-          country,
+      if (typeof latitude === "number" && typeof longitude === "number") {
+        const nearest = await Location.findOne({
           location: {
-            type: "Point",
-            coordinates: [longitude, latitude],
+            $near: {
+              $geometry: { type: "Point", coordinates: [longitude, latitude] },
+              $maxDistance: 50000,
+            },
           },
-          name: address,
         });
 
-        await newLocation.save();
-        resolvedLocationId = newLocation._id;
+        if (nearest) {
+          resolvedLocationId = nearest._id;
+        } else {
+          const { address, country } = await reverseGeocode(latitude, longitude);
+          const newLocation = new Location({
+            country,
+            location: { type: "Point", coordinates: [longitude, latitude] },
+            name: address,
+          });
+
+          await newLocation.save();
+          resolvedLocationId = newLocation._id;
+        }
       }
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const newUser = new User({
       name,
       phone,
       email,
       password: hashedPassword,
       profileImage,
-      role: "buyer", // default role for everyone
+      role: "buyer",
       tradeLicenseStatus: "not_uploaded",
-      location: resolvedLocationId,
+      location: resolvedLocationId, // can be null
     });
 
     await newUser.save();
 
     const { password: _, ...userData } = newUser.toObject();
 
+    // If pending approval
     if (newUser.status === "pending") {
       return res.status(201).json({
         message: "Signed up successfully. Awaiting approval.",
@@ -427,6 +422,7 @@ const registerUser = async (req, res, next) => {
       });
     }
 
+    // JWT
     const accessToken = jwt.sign(
       { id: userData._id, email: userData.email, role: userData.role },
       process.env.ACCESS_TOKEN_SECRET,
@@ -453,11 +449,13 @@ const registerUser = async (req, res, next) => {
       accessToken,
       role: userData.role,
       status: userData.status,
+      location: resolvedLocationId, // return null if not provided
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 const addTradeLicenseDetails = async (req, res, next) => {
   try {
