@@ -25,6 +25,12 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
   },
+  
+    address: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
+    },
   requestedAt: {
     type: Date,
     default: Date.now
