@@ -9,6 +9,7 @@ const {
   addTradeLicenseDetails,
   registerUser,
   getTradeLicenseStatus,
+  updateProfileImage,
 } = require("../../controllers/Login/loginController");
 const { checkUserStatus } = require("../../controllers/admin/authController");
 const {
@@ -31,6 +32,13 @@ router.put(
   jwtAuthentication,
   upload.fields([{ name: "tradeLicenseCopy", maxCount: 1 }]),
   addTradeLicenseDetails
+);
+router.put(
+  "/update-profile-image",
+  jwtAuthentication,
+  upload.single("image"),
+  compressUploadedImages,
+  updateProfileImage
 );
 router.post("/login/send-otp", sendOtpController);
 router.post("/login/verify-otp", verifyOtpController);

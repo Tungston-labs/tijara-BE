@@ -596,9 +596,36 @@ const getTradeLicenseStatus = async (req, res, next) => {
     next(error);
   }
 };
+const updateProfileImage = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const profileImage = req.file?.filename
+      ? `${req.protocol}://${req.get("host")}/uploads/users/${req.file.filename}`
+      : null;
+
+    if (!profileImage) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profileImage },
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json({
+      message: "Profile image updated successfully",
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   registerUser,
+  updateProfileImage,
   sendOtpController,
   verifyOtpController,
   login,
