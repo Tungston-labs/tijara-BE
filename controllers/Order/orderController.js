@@ -3,13 +3,11 @@ const Order = require('../../models/Order');
 const User = require("../../models/User");
 
 const { notifySellerOfOrder, notifyBuyerOnAcceptance } = require("../../controllers/notification/notificationController");
-
 const createOrderRequest = async (req, res, next) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, quantity, addressId } = req.body;
     const { id: userId, role } = req.user;
 
-    // Prevent admins from placing orders
     if (role === "admin") {
       return res.status(403).json({ message: "Admins are not allowed to place orders" });
     }
@@ -19,19 +17,22 @@ const createOrderRequest = async (req, res, next) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Prevent ordering own product
     if (String(product.addedBy) === String(userId)) {
       return res.status(400).json({ message: "You cannot order your own product" });
     }
 
-    // Ensure product was added by a seller
-    if (product.addedByModel !== "User") {
-      return res.status(400).json({ message: "Product was not listed by a seller" });
-    }
-
-    // Optional: Check if requested quantity is available
     if (product.availableKg < quantity) {
       return res.status(400).json({ message: "Insufficient stock available" });
+    }
+
+    // ✅ Validate address belongs to buyer
+    const address = await Address.findOne({
+      _id: addressId,
+      user: userId
+    });
+
+    if (!address) {
+      return res.status(400).json({ message: "Invalid address selected" });
     }
 
     const order = new Order({
@@ -39,17 +40,23 @@ const createOrderRequest = async (req, res, next) => {
       buyer: userId,
       seller: product.addedBy,
       quantity,
+      address: address._id,
       status: "pending"
     });
 
     await order.save();
 
-    // 🔔 Notify seller
     const buyer = await User.findById(userId);
     const seller = await User.findById(product.addedBy);
-    await notifySellerOfOrder(buyer, seller, product, quantity);
 
-    res.status(201).json({ message: "Order request sent to seller", order });
+    // 🔔 Send seller notification with address
+    await notifySellerOfOrder(buyer, seller, product, quantity, address);
+
+    res.status(201).json({
+      message: "Order request sent to seller",
+      order
+    });
+
   } catch (err) {
     next(err);
   }

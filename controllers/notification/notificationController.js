@@ -23,21 +23,51 @@ const sendNotification = async (fcmToken, title, body, data = {}) => {
     console.error("Push notification error:", error);
   }
 };
-const notifySellerOfOrder = async (buyer, seller, product, quantity) => {
-  const title = "New Order";
+const notifySellerOfOrder = async (buyer, seller, product, quantity, address) => {
+  const title = "New Order Request";
+
   const message = `${buyer.name} requested ${quantity}kg of ${product.itemName}`;
 
-  // Save to DB
+  // Create WhatsApp message
+  const whatsappMessage = `
+New Order Request
+
+Product: ${product.itemName}
+Quantity: ${quantity} kg
+
+Buyer:
+${buyer.name}
+Phone: ${buyer.phone}
+
+Delivery Address:
+${address.street}
+${address.area}
+${address.city}
+${address.state}
+${address.postalCode}
+${address.country}
+`;
+
+  const encodedMessage = encodeURIComponent(whatsappMessage);
+
+  const whatsappLink = `https://wa.me/${buyer.phone}?text=${encodedMessage}`;
+
+  // Save full details in DB
   await Notification.create({
     sender: buyer._id,
     recipient: seller._id,
     title,
     message,
     type: "order",
-    metadata: { productId: product._id, quantity }
+    metadata: {
+      productId: product._id,
+      quantity,
+      addressId: address._id,
+      whatsappLink
+    }
   });
 
-  // Push notification
+  // Push notification (keep lightweight)
   if (seller.fcmToken) {
     await sendNotification(seller.fcmToken, title, message, {
       type: "order",
@@ -45,6 +75,7 @@ const notifySellerOfOrder = async (buyer, seller, product, quantity) => {
     });
   }
 };
+
 
 const notifyBuyerOnAcceptance = async (seller, buyer, product, quantity) => {
   const title = "Order Accepted";

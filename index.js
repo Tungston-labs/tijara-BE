@@ -18,6 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/welcome", (req, res) => {
   return res.send("Hello from express");
 });
+app.use("/addresses", require("./routes/address/addressRoutes"));
 
 app.use("/admin/auth", require("./routes/admin/authRoutes"));
 app.use("/buyer", require("./routes/buyer/buyerRoutes"));
