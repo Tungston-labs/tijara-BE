@@ -37,7 +37,7 @@ router.put(
 router.put(
   "/update-profile-image",
   jwtAuthentication,
-  upload.single("image"),
+  upload.single("profileImage"),
   compressUploadedImages,
   updateProfileImage
 );
