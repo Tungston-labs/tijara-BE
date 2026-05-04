@@ -34,21 +34,15 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "image/heic",
-    "image/heif",
-    "application/pdf"
-  ];
-  if (allowedTypes.includes(file.mimetype)) {
+  if (
+    file.mimetype.startsWith("image/") || 
+    file.mimetype === "application/pdf"
+  ) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, PNG, JPG, HEIC, and PDF files are allowed"), false);
+    cb(new Error("Only image files and PDFs are allowed"), false);
   }
 };
-
 const upload = multer({ storage, fileFilter });
 
 module.exports = upload;
